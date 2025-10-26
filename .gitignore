@@ -1,2 +1,8 @@
-EstudioCSGO/API_Key.txt
-EstudioCSGO/.Rhistory
+Deprecated CS2 Userbase Study/API_Key.txt
+Deprecated CS2 Userbase Study/.Rhistory
+.Rproj.user
+Data/price-history-daily.json
+Data/price-history-monthly.json
+Data/price-history-raw.json
+Data/price-history-weekly-2.json
+Data/price-history-weekly.json

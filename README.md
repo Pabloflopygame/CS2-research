@@ -7,84 +7,16 @@
 
 ## Funcionamiento
 
-Seguiremos el procedimiento que explicamos más en detalle en: <https://docs.google.com/document/d/1OHF9b_EaeJVvIRAv_ySG4laCNvbrCiQOlgvt7exVdtw/edit?usp=sharing>
+[]
 
 ## Configuración
 
-1.  Crea `API_Key.txt` y pon tu clave:
-
-    ```         
-    STEAM_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    ```
-
-    También puedes exportarla en tu sesión abriendo el proyecto y poniendo en la consola:
-
-    ``` r
-    Sys.setenv(STEAM_API_KEY="xxxxxxxx")
-    ```
-
-2.  (Opcional) Ajusta las starting seeds:
-
-    -   `input/seed_groups.txt`: lista de URLs de grupos.
-    -   `input/seed_users.txt`: lista de usuarios a añadir. Por defecto están las seeds que usamos.
-
-3.  (Opcional) Ajusta parámetros vía variables de entorno:
-
-    -   `DEPTH` (por defecto 6)
-    -   `PRUNE` (por defecto \~0.02)
+[]
 
 ## Ejecución rápida
 
-Simplemente ejecuta el script "main" y este llamará al resto de ficheros.
+[]
 
 ## Salidas principales (`out/`)
 
--   `seed_ids.csv`
-
-Descripción: ID's que partimos.
-
-Columnas: user: int
-
--   `user_edges.csv`
-
-Descripción: Relaciona los amigos de cada usuario que registramos.
-
-Nota: Contiene usuarios encontrados durante la búsqueda, por lo que pueden haber usuarios que terminaremos cesgando en el resultado final.
-
-Columnas: user: int, friend: int
-
-Ejemplo:
-
-| user | friend |
-|------|--------|
-| 3014 | 1324   |
-| 3014 | 1342   |
-| 3090 | 3014   |
-| 1342 | 3014   |
-| ...  | ...    |
-
--   `user_nodes.csv`
-
-Descripción: Todos los usuarios.
-
-Nota: Contiene todos los usuarios encontrados durante la búsqueda (por lo que tendrán usuarios que terminaremos cesgando en el resultado final).
-
-Columnas: user: int, public_friendlist: boolean, public_library: boolean, public_friendlist: boolean, public_inventory: boolean
-
--   `final_user.csv`
-
-Descripción: Todos los usuarios ya cesgados y sus datos asociados.
-
-Columnas: user: int, friends: vector of ints, csgo_hours_played: int, csgo_items_amount: int
-
-Requisitos que el usuario ha tenido que pasar para entrar a la tabla final:
-
-1.  No fue cesgado
-
-2.  Tiene el inventario y horas de juego público
-
-3.  Tiene amigos públicos (salvo que sea un nodo hoja)
-
--   `final_items.csv`
-
-TLDR. Hay MUCHOS datos que nos pasa steam, por ahora no tocamos items, cuando lo hagamos terminaremos esto. Probablemente nombrando las columnas que más nos interesen.
+[]
