@@ -3,7 +3,7 @@
 ## Requisitos
 
 -   R \>= 4.5
--   Paquetes R: None (por ahora)
+-   Paquetes R: `jsonlite`
 
 ## Funcionamiento
 
