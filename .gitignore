@@ -6,3 +6,4 @@ Data/price-history-monthly.json
 Data/price-history-raw.json
 Data/price-history-weekly-2.json
 Data/price-history-weekly.json
+out/data_raw_long.csv

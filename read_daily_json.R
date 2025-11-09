@@ -104,7 +104,8 @@ rm(raw_data, weapons, dates, nWeapons, nDates, precio_mat, oferta_mat); gc()
 # de cara al futuro.
 detach("package:jsonlite")
 
+# ----7) Guardar----
 # si lo quieres guardar en out (puede tardar un poco):
-# saveRDS(data, file = "./out/data_daily.rds", compress = "xz")
+saveRDS(data, file = "./out/data_daily.rds", compress = "xz")
 # para volver a abrir:
 # data <- readRDS("./out/data_daily.rds")
