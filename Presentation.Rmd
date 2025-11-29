@@ -1,0 +1,37 @@
+---
+title: "CSGO Market Study"
+author: "Pablo Santana Acosta, Óscar González Pérez, Luis Wandelmer Peña"
+date: "`r Sys.Date()`"
+output: powerpoint_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+AQUÍ VAMOS A HACER NUESTRO Powerpoint. 
+CREO QUE SERÁ FACIL PARA EXPORTAR.
+- Pablo
+
+## R Markdown
+
+[]
+
+## Slide with Bullets
+
+- Bullet 1
+- Bullet 2
+- Bullet 3
+
+## Slide with R Output
+
+```{r cars, echo = TRUE}
+summary(cars)
+```
+
+## Slide with Plot
+
+```{r pressure}
+plot(pressure)
+```
+

@@ -2,7 +2,7 @@
 library(jsonlite)
 
 # ----1) Cargar JSON----
-setwd(".")
+setwd("./")
 raw_data <- fromJSON("./Data/price-history-daily.json")
 
 # ----2) Extraer columnas----

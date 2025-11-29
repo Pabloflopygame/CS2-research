@@ -1,6 +1,7 @@
 # Warning!!! 
 # Puede tardar ~12 HORAS para nuestro dataset
-# !!!
+# No hace falta borrar el CSV temporal append = False borra lo que haya.
+
 
 setDTthreads(percent = 100) # recomendado tener
 
@@ -26,7 +27,7 @@ suppressWarnings({
 library(data.table)
 
 # ----1) Cargar JSON (misma ruta)----
-setwd(".")
+setwd("./")
 raw_data <- fromJSON("./Data/price-history-raw.json")
 
 # ----2) Archivo de salida (formato largo)----

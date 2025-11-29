@@ -1,0 +1,391 @@
+---
+title: "CSGO Market Study"
+author: "Pablo Santana Acosta, Óscar González Pérez, Luis Wandelmer Peña"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+[subtitulo, frase con "hook"] **/ToDo**
+
+## Indice
+
+-   [Introducción]
+
+-   [Términos]
+
+-   [Objetivos del trabajo]
+
+-   [Fuentes de datos utilizadas]
+
+-   [Análisis de los datos]
+
+    -   [Vista general del mercado]
+
+    -   [Relación precio/demanda]
+
+    -   [Loot boxes]
+
+    -   []
+
+-   [Conclusiones]
+
+-   [Anexos]
+
+## Introducción
+
+**/ToDo** \<-- Lo último que se hace.
+
+## Términos
+
+Durante este trabajo usaremos términos asociados a este mercado como "skins", "armas" o "loot boxes". Por lo que antes de comenzar queremos explicarlos para evitar confución.
+
+Primero y antes de todo, el mercado de CSGO (también conocido como Counter Strike Global Offensive o Counter Strike 2 después de la actualización del 27 de Septiembre de 2023) es un mercado que intercambia dinero (en el caso de nuestra base de datos Yuanes Chinos) por agentes cosméticos dentro del juego que después pueden ser re-vendidos entre usuarios.
+
+Mientras los usuarios juegan tienen una probabilidad de conseguir una "loot box" que con una "key" que tiene un precio fijo durante todo el tiempo de 2.50\$ en EEUU y 2.10€ en EU (exeptuando loot boxes especiales que se consiguen en eventos como competiciones que requieres llaves más caras para abrirlas). Con esta "loot box" y "key" que les llamaremos caja y llave intercambiablemente, pueden conseguir un cosmético aleatorio dentro de lo que cada caja (que varían cada temporada) traiga.
+
+Existen muchas cajas que un usuario normal puede conseguir y por lo tanto muchos cosméticos que pueda sacar, pero las cajas están trucadas para favorecer que salgan cosméticos más baratos que caros, por lo que es bien conocido en la comunidad que "nunca ganas dinero abriendo cajas" (aunque nosotros lo investigaremos nuevamente a ver cuanto ganas/pierdes de media).
+
+Ahora, ya sabemos de donde salen los cosméticos, porqué crece el mercado y conceptos como caja y llave, ahora ataquemos el concepto de "skin" y "armas". Realmente el concepto correcto es cosméticos, pero como los cosméticos son principalmente usados en las armas del juego hay veces que los usamos intercanbiablemente. Ahora, nuestro conjunto de datos no incluye las keys pero si las cajas, por lo que es importante recordar que cuando hablamos de "skins", "armas", "items" no es más que elementos que puedes comprar del mercado para re-venderlos, abrirlas si son cajas o usarlas si son cosméticos.
+
+Por último tampoco mencionaremos skins hechas a mano. Dicho de manera simple, mezclando skins con stickers y cambiando el nombre o inclusive subiendo statísticas del arma individual como "kill counter" puedes crear un arma única. Lo ignoramos porque estas suelen ser objetos de collecionismo que rara vez circula por el mercado y a lo mucho tienen 2-3 ventas con precios super altos (especialmente si la hizo una persona famosa), y tampoco podríamos añadirlas porque la base de datos no las cuenta.
+
+## Objetivos del trabajo
+
+-   Estudiar el mercado
+
+-   Predecir su crecimiento/decrecimiento 
+
+-   Analizar qué fluctuaciones se puede esperar (volatilidad del mercado)
+
+-   Investigar qué elementos del mercado obtienen la mejor rentabilidad
+
+-   \*Analizar las probabilidades, precios y rentabilidad asociadas a las "loot boxes".
+
+\*En nuestra base de datos no tenemos los precios de las keys ni de los items que dan, por lo que cuando lleguemos a ese apartado tendremos que buscar las estadísticas que "Valve" aporta públicamente (items que pueden tocar, probabilidades y precio de la key asociada). Todo esto será citado como fuentes extras en los anexos a medida que aportamos datos.
+
+## Fuentes de datos utilizadas
+
+En este trabajo usaremos un repertorio público “Archive of CS2 Item's Price History from Buff.163” que almacena durante el periodo (aproximadamente) de 26.07.2021 - 19.01.2024 en varias definiciones el mercado online de CSGO (y su consecuente actualización a CS2) desde el punto de vista de una de las páginas de terceros más populares para hacer compras y ventas llamada “buff.163.com”.
+
+Notas importantes de esta fuente de datos son:
+
+-   No tiene datos sobre keys, pero tiene sobre cases.
+
+-   No tiene datos de demanda antes de 25/01/2023 (tiene 0)
+
+-   Las medias para cualquier dataframe diferente a raw se calculan como: `aggregate = dataPoints.filter(d => d > 0).length == 0 ? 0 : dataPoints.filter(d => d > 0).median()`.
+
+-   Los datos se guardan como centiyuanes (para que sean números enteros). Por lo que tuvimos que pasarlo a Yuanes normales (CN¥) diviendo entre 100.
+
+-   Hay \~300 items que no fueron medidos y se pueden encontrar cuales fueron mirando un .txt dentro del repertorio [aquí](https://github.com/atalantus/buff-price-history-archive/blob/main/missing-items.txt).
+
+-   No contiene skins hechas a mano (con stickers) o con nombres especiales, por ejemplo una skin "firmada" por una persona famosa, ya que cada una es única y no es representativo de lo que la skin original valdría.
+
+## Análisis de los datos
+
+En este apartado hablaremos de la parte importante de la investigación, las operaciones que realizamos para encontrar información de los datos.
+
+### Vista general del mercado
+
+Primero de todo, necesitamos ver como es el mercado en términos generales. Para eso usaremos el dataframe de months ya que es más ligero y nos permite ver lo que buscamos, una vista general.
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(ggplot2)
+library(lubridate)
+data_month <- readRDS("./out/data_monthly.rds")
+```
+
+Pero primero necesitamos saber la escala de nuestra vista por lo qué, ¿Cuales son los rangos de datos que trataremos?
+
+```{r}
+df_long <- data_month %>%
+  pivot_longer(cols = -nombre,
+               names_to = "fecha",
+               values_to = "valor"
+               ) %>% 
+  mutate(precio = map_dbl(valor, 
+                          function(x) {
+                            if (is.null(x)) return(NA_real_)
+                            as.numeric(x["precio"])
+                            }
+                          )
+         )
+
+
+filter(df_long, precio == min(precio, na.rm = TRUE))
+filter(df_long, precio == max(precio, na.rm = TRUE))
+```
+
+Entonces podemos esperar valores entre 0 y \~3,500,000.
+
+En el caso de la skin mas cara es una histórica que ha día de hoy sigue siendo prevalente, por curiosidad si desean verla la pueden encontrar en anexos[1].
+
+En el caso de los 0's habría que mirar porque los precios están a 0, comúnmente es porque no existe gente dispuesta a vender, por lo que no existen ofertas y por tanto precio. Para asegurar esta teoría es tan simple hacer:
+
+```{r, warning = FALSE}
+df_long_filtered <- data_month %>%
+  pivot_longer(
+    cols = -nombre,
+    names_to = "fecha",
+    values_to = "valor"
+  ) %>% 
+  mutate(
+    precio = map_dbl(valor, function(x) {
+      if (is.null(x)) return(NA_real_)
+      as.numeric(x["precio"])
+    }),
+    oferta = map_dbl(valor, function(x) {
+      if (is.null(x)) return(NA_real_)
+      as.numeric(x["oferta"])
+    })
+  )
+
+filter(df_long_filtered, oferta > 0, precio == min(precio, na.rm = TRUE))
+filter(df_long_filtered, oferta > 0, precio == max(precio, na.rm = TRUE))
+```
+
+Ahora que hemos filtrado elementos que no estan a la venta (oferta es 0) podemos ver como esas skins desaparecen. Ahora ejecutando el siguiente script para mostrar los siguientes menores con oferta \> 0:
+
+```{r}
+df_long_filtered %>% 
+  filter(oferta > 0) %>% 
+  slice_min(precio, n = Inf)
+
+nrow(df_long_filtered %>% 
+       filter(oferta > 0) %>% 
+       slice_min(precio, n = Inf)
+     )
+```
+
+Pues vemos que lo más barato son 0.02 Yuan entre 283640 items.
+
+Ahora con esto ya podemos ver el valor del mercado de media por mes en un gráfico de barras y ver su evolución.
+
+```{r}
+mercado_media <- df_long %>%
+  group_by(fecha) %>%
+  summarise(media_precio = mean(precio, 
+                                na.rm = TRUE)
+            ) %>%
+  arrange(fecha)
+
+ggplot(mercado_media, 
+       aes(x = as.numeric(factor(fecha)), 
+           y = media_precio)) +
+  geom_col(aes(x = as.numeric(factor(fecha))), 
+           fill = "steelblue") +
+  geom_smooth(method = "lm", 
+              se = FALSE, 
+              linewidth = 1.2, 
+              color = "darkgreen") +
+  scale_x_continuous(
+    breaks = seq_along(mercado_media$fecha),
+    labels = mercado_media$fecha
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Evolución del precio medio menusal del mercado",
+    x = "Mes",
+    y = "Precio medio (CN¥)"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, 
+                                   hjust = 1))
+
+mercado_media$mes_num <- seq_len(nrow(mercado_media))
+modelo <- lm(media_precio ~ mes_num, data = mercado_media)
+
+round(coef(modelo)[["mes_num"]], 2)
+```
+
+Podemos ver que el mercado crece, y la linea verde es una regreción lineal que nos dirá el crecimiento de media con su pendiente, en este caso 44(CN¥) por mes (\~50 centimos de euro con conversión actual).
+
+[Creo que un buen puñado de armas entraron en el mercado en 2022 y de ahí se debe el salto entre un año y otro (es una hipotesis, se comprueba mirando la fecha de sus últimos NA's si tienen y comparando)] **/ToDo**
+
+Ahora intentemos hacer un diagrama de caja y bigotes para ver la desviación durante cada mes.
+
+```{r}
+ggplot(df_long %>% filter(!is.na(precio)), 
+       aes(x = fecha, 
+           y = precio)) +
+  geom_boxplot(fill = "skyblue") +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Distribución mensual del precio de las skins (boxplot)",
+    x = "Mes",
+    y = "Precio (CN¥)"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+No se ve nada, hay MUCHOS outliers e incluso quitandolos:
+
+```{r}
+df_sin_outliers <- df_long %>%
+  group_by(fecha) %>%
+  filter({
+    Q1  <- quantile(precio, 0.25, na.rm = TRUE)
+    Q3  <- quantile(precio, 0.75, na.rm = TRUE)
+    IQR <- Q3 - Q1
+    lower <- Q1 - 1.5 * IQR
+    upper <- Q3 + 1.5 * IQR
+    precio >= lower & precio <= upper
+  }) %>%
+  ungroup()
+
+ggplot(df_sin_outliers, 
+       aes(x = fecha, 
+           y = precio)) +
+  geom_boxplot(fill = "skyblue") +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Distribución mensual del precio de las skins (outliers eliminados)",
+    x = "Mes",
+    y = "Precio (CN¥)"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, 
+                                   hjust = 1))
+```
+
+Incluso sin outliers los datos están tan dispersos que el diagrama de caja tiene problemas mostrando datos.
+
+Para solucionar esto usaremos una escala logirtmica y re-añadiremos los valores extremos:
+
+```{r}
+ggplot(df_long %>% filter(!is.na(precio), precio > 0), 
+       aes(x = fecha, 
+           y = precio)) +
+  geom_boxplot(fill = "skyblue") +
+  scale_y_log10() +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Precio mensual de las skins (escala log)",
+    x = "Mes",
+    y = "Precio (CN¥)"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, 
+                                   hjust = 1))
+```
+
+Lo primero a mencionar es la falta de extremos inferiroes, no hay porque el mínimo valor que puede tener es 0.02 mientras que el extremo inferior empieza en \~0.001. Por lo que no existen.
+
+[que más hay que comentar???] **/ToDo**
+
+Siguiente punto es que ahora ya sabemos que tenemos muchos extremos y podemos plantearnos preguntas como:
+
+-   ¿Estos extremos son siempre los mismos? Y si no, ¿que les paso? ¿Fué un pico puntual, una burbuja, manipulación de mercado?
+
+-   ¿El crecimiento de cada skin es el que esperaríamos con el crecimiento del mercado y de esa forma explicando la escala logarítmica? ¿Porque nos hace falta esta escala, la respuesta está enlazada con una propiedad interesante de las observaciones?
+
+Pero antes de entrar en esas preguntas viene bien tener métricas como la varianza o el coeficiente de variación y ver que conclusiones podemos sacar de ellas:
+
+```{r}
+stats_por_arma <- df_long %>%
+  group_by(nombre) %>%
+  summarise(
+    media = mean(precio, na.rm = TRUE),
+    sd = sd(precio, na.rm = TRUE),
+    varianza = var(precio, na.rm = TRUE),
+    CV = ifelse(media == 0, NA, sd / media)
+  )
+
+ggplot(stats_por_arma %>% filter(!is.na(varianza)), aes(x = varianza)) +
+  geom_histogram(bins = 60, fill = "steelblue") +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Distribución de la varianza del precio por skin",
+    x = "Varianza",
+    y = "Frecuencia"
+  )
+
+ggplot(stats_por_arma %>% filter(!is.na(varianza), varianza > 0), aes(x = varianza)) +
+  geom_histogram(bins = 60, fill = "steelblue") +
+  scale_x_log10() +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Distribución de la varianza por skin (escala log)",
+    x = "Varianza (log10)",
+    y = "Frecuencia"
+  )
+
+ggplot(stats_por_arma %>% filter(!is.na(CV)), aes(x = CV)) +
+  geom_histogram(bins = 60, fill = "darkorange") +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Distribución del coeficiente de variación (CV) por skin",
+    x = "Coeficiente de variación",
+    y = "Frecuencia"
+  )
+
+ggplot(stats_por_arma %>% filter(!is.na(CV), CV > 0), aes(x = CV)) +
+  geom_histogram(bins = 60, fill = "darkorange") +
+  scale_x_log10() +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Distribución del CV por skin (escala log)",
+    x = "Coeficiente de variación (log10)",
+    y = "Frecuencia"
+  )
+```
+
+Lo primero que podemos concluir de todo es que el primer diagrama es muy poco explicativo, hace falta mucha resolución en un area específica y después mantener elementos muy extremos, lo cual es imposible sin que sea un diagrama con muchos rangos, con amplitud pequeña y que sea exagerademente ancho. Por lo que pasamos a escala logarítmica y de ahí podemos sacar más.
+
+¿Ahora que podemos concluir de estas gráficas?
+
+-   **/ToDo**
+
+Volvemos para responder a las preguntas anteriores:
+
+**/ToDo**
+
+Por ahora limpiamos el entorno y seguimos con el siguiente tema.
+
+```{r, warning=FALSE, results='hide'}
+rm(data_month, df_long, df_long_filtered, df_sin_outliers, mercado_media, modelo, stats_por_arma)
+detach("package:tidyverse", unload = TRUE)
+detach("package:dplyr", unload = TRUE)
+detach("package:tidyr", unload = TRUE)
+detach("package:purrr", unload = TRUE)
+detach("package:ggplot2", unload = TRUE)
+detach("package:lubridate", unload = TRUE)
+gc()
+```
+
+### Relación precio/demanda
+
+Idea: ¿Existe una relación precio-demanda? Y si es así, ¿De que manera?
+
+**/ToDo**
+
+### Loot boxes
+
+Probabilidades, precio y rentabilidad (si es posible asociarlo con lo anterior, pero no irse muy loco)
+
+**/ToDo**
+
+### []
+
+**/ToDo**
+
+## Conclusiones
+
+**/ToDo** \<-- Lo penúltimo que se hace.
+
+## Anexos
+
+[1]
+
+![](images/clipboard-2655942623.png)
+
+Nota: Personalmente por lo comparable a \~425,000€ en conversión actual lo veo algo excesivo.

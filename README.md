@@ -11,17 +11,17 @@ La base de datos no tiene valores de demanda para fechas anteriores a 2023/01/25
 
 ## Funcionamiento
 
-Los ficheros "`read_...`" leen los json del repertorio <https://github.com/atalantus/buff-price-history-archive> que se encuentra en data y lo transforma en dataframes que usaremos en el trabajo.
+Los ficheros "`read_...`" leen los json del repertorio <https://github.com/atalantus/buff-price-history-archive> que se encuentran en data y lo transforma en dataframes que usaremos en el trabajo (depositados en out).
 
-El main se encargará del trabajo de estadística principal a su vez que avisar al usuario de cualquier problema.
+El main se encargará de configurar el entorno y avisar al usuario de cualquier problema.
 
-El RMarkdown se encarga de generar un informe legible en pdf basado en los chunks de main.
+El RMarkdown se encarga de generar un informe legible en pdf basado en chunks de código de los scripts (`Market_overview.R`, ...).
 
 ## Configuración
 
 Primero de todo evidentemente tienes que instalar las librerías, main te preguntara si las quieres instalar y te forzará a tenerlas antes de continuar, por lo que las puedes descargar por tu cuenta o dejar que el programa lo haga por ti.
 
-Si la base de datos original a cambiado, ahora se te plantean las 2 siguientes opciones (re-generarlos o continuar con la antigua). Re-generarlos puede tomar desde 12 horas hasta días, por lo que recomendamos mantener los actuales.
+Si la base de datos original ha cambiado, ahora se te plantean las 2 siguientes opciones (re-generarlos o continuar con la antigua). Re-generarlos puede tomar desde 12 horas hasta días, por lo que recomendamos mantener los actuales.
 
 ### Si quieres re-generar los datos:
 

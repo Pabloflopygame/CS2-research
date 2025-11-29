@@ -2,8 +2,8 @@
 library(jsonlite)
 
 # ----1) Cargar JSON diario----
-setwd(".")
-raw_data <- fromJSON("./Data/price-history-weekly.json")
+setwd("./")
+raw_data <- fromJSON("./Data/price-history-weekly-2.json")
 
 # ----2) Extraer todas las fechas----
 #  Normalizarlas a semana (por ISO, International Standards Organization, 
@@ -87,5 +87,5 @@ rm(raw_data, weapons, weeks_unique, week_labels, nWeapons, nWeeks,
 detach("package:jsonlite")
 
 # ----7) Guardar----
-saveRDS(data, file = "./out/data_weekly.rds", compress = "xz")
-# data <- readRDS("./out/data_weekly.rds")
+saveRDS(data, file = "./out/data_weekly-2.rds", compress = "xz")
+# data <- readRDS("./out/data_weekly-2.rds")
