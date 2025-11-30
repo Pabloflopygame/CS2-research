@@ -3,6 +3,8 @@ title: "CSGO Market Study"
 author: "Pablo Santana Acosta, Óscar González Pérez, Luis Wandelmer Peña"
 date: "`r Sys.Date()`"
 output:
+  html_document:
+    df_print: paged
   pdf_document:
     latex_engine: xelatex
 ---
@@ -47,13 +49,13 @@ Durante este trabajo usaremos términos asociados a este mercado como "skins", "
 
 Primero y antes de todo, el mercado de CSGO (también conocido como Counter Strike Global Offensive o Counter Strike 2 después de la actualización del 27 de Septiembre de 2023) es un mercado que intercambia dinero (en el caso de nuestra base de datos Yuanes Chinos) por agentes cosméticos dentro del juego que después pueden ser re-vendidos entre usuarios.
 
-Mientras los usuarios juegan tienen una probabilidad de conseguir una "loot box" que con una "key" que tiene un precio fijo durante todo el tiempo de 2.50\$ en EEUU y 2.10€ en EU (exeptuando loot boxes especiales que se consiguen en eventos como competiciones que requieres llaves más caras para abrirlas). Con esta "loot box" y "key" que les llamaremos caja y llave intercambiablemente, pueden conseguir un cosmético aleatorio dentro de lo que cada caja (que varían cada temporada) traiga.
+Mientras los usuarios juegan tienen una probabilidad de conseguir una "loot box" que con una "key" que tiene un precio fijo durante todo el tiempo de 2.50\$ en EEUU y 2.10€ en EU (exeptuando loot boxes especiales que se consiguen en eventos como competiciones que requieres llaves más caras para abrirlas). Con esta "loot box" y "key" que les llamaremos caja y llave respectivamente, pueden conseguir un cosmético aleatorio dentro de lo que cada caja traiga (que varían cada temporada).
 
-Existen muchas cajas que un usuario normal puede conseguir y por lo tanto muchos cosméticos que pueda sacar, pero las cajas están trucadas para favorecer que salgan cosméticos más baratos que caros, por lo que es bien conocido en la comunidad que "nunca ganas dinero abriendo cajas" (aunque nosotros lo investigaremos nuevamente a ver cuanto ganas/pierdes de media).
+Existen muchas cajas que un usuario normal puede conseguir y por lo tanto muchos cosméticos que puede sacar. Sin embargo las cajas están trucadas para favorecer que salgan cosméticos más baratos que caros, por lo que es bien conocido en la comunidad que "nunca ganas dinero abriendo cajas" (aunque nosotros lo investigaremos nuevamente a ver cuanto ganas/pierdes de media).
 
-Ahora, ya sabemos de donde salen los cosméticos, porqué crece el mercado y conceptos como caja y llave, ahora ataquemos el concepto de "skin" y "armas". Realmente el concepto correcto es cosméticos, pero como los cosméticos son principalmente usados en las armas del juego hay veces que los usamos intercanbiablemente. Ahora, nuestro conjunto de datos no incluye las keys pero si las cajas, por lo que es importante recordar que cuando hablamos de "skins", "armas", "items" no es más que elementos que puedes comprar del mercado para re-venderlos, abrirlas si son cajas o usarlas si son cosméticos.
+Ahora, ya sabemos de donde salen los cosméticos, por qué crece el mercado y conceptos como caja y llave. Ahora ataquemos el concepto de "skin" y "armas". Realmente el concepto correcto es cosméticos, pero como los cosméticos son principalmente usados en las armas del juego hay veces que los usamos intercambiablemente. Ahora, nuestro conjunto de datos no incluye las keys pero si las cajas, por lo que es importante recordar que cuando hablamos de "skins", "armas", "items" no es más que elementos que puedes comprar del mercado para re-venderlos, abrirlas si son cajas o usarlas si son cosméticos.
 
-Por último tampoco mencionaremos skins hechas a mano. Dicho de manera simple, mezclando skins con stickers y cambiando el nombre o inclusive subiendo statísticas del arma individual como "kill counter" puedes crear un arma única. Lo ignoramos porque estas suelen ser objetos de collecionismo que rara vez circula por el mercado y a lo mucho tienen 2-3 ventas con precios super altos (especialmente si la hizo una persona famosa), y tampoco podríamos añadirlas porque la base de datos no las cuenta.
+Por último tampoco mencionaremos skins hechas a mano. Dicho de manera simple, mezclando skins con stickers y cambiando el nombre o inclusive subiendo estadísticas del arma individual como "kill counter" puedes crear un arma única. Lo ignoramos porque estas suelen ser objetos de coleccionismo que rara vez circula por el mercado y a lo mucho tienen 2-3 ventas con precios super altos (especialmente si la hizo una persona famosa), y tampoco podríamos añadirlas porque la base de datos no las cuenta.
 
 ## Objetivos del trabajo
 
@@ -209,7 +211,25 @@ round(coef(modelo)[["mes_num"]], 2)
 
 Podemos ver que el mercado crece, y la linea verde es una regreción lineal que nos dirá el crecimiento de media con su pendiente, en este caso 44(CN¥) por mes (\~50 centimos de euro con conversión actual).
 
-[Creo que un buen puñado de armas entraron en el mercado en 2022 y de ahí se debe el salto entre un año y otro (es una hipotesis, se comprueba mirando la fecha de sus últimos NA's si tienen y comparando)] **/ToDo**
+Este crecimiento se puede dar a la introducción de nuevos cosméticos al juego con el paso del tiempo. Podemos observar en la siguiente grafica la cantidad de artículos con precio NA según el mes. A medida que la cantidad de NAs decrece, la media del mercado sube. El pico que se observa entre marzo y abril del 2022 corresponde con una introducción significativa de items al juego:
+
+```{r}
+items_available <- df_long %>% 
+  group_by(fecha) %>% 
+  summarise(nas=sum(is.na(precio)))
+
+ggplot(items_available) + 
+  geom_col(aes(fecha, nas), fill = "steelblue") +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Número de items con precio NA según el mes",
+    x = "Mes",
+    y = "NAs"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Sin embargo, este crecimiento no solo se debe la introducción de nuevos cosméticos. El crecimiento también se da por la actualización anunciada en 2023 del paso de CSGO a CS2. Esto explicaría el pico que se observa entre marzo y abril del 2023 en la media del mercado a pesar de que el número de NAs entre dichos meses no haya cambiado significativamente.
 
 Ahora intentemos hacer un diagrama de caja y bigotes para ver la desviación durante cada mes.
 
@@ -278,11 +298,13 @@ ggplot(df_long %>% filter(!is.na(precio), precio > 0),
                                    hjust = 1))
 ```
 
-Lo primero a mencionar es la falta de extremos inferiroes, no hay porque el mínimo valor que puede tener es 0.02 mientras que el extremo inferior empieza en \~0.001. Por lo que no existen.
+Lo primero a mencionar es la falta de extremos inferiores. No hay porque el mínimo valor que puede tener es 0.02 mientras que el extremo inferior empieza en \~0.001, por lo que no existen.
 
-[que más hay que comentar???] **/ToDo**
+En segundo lugar, se pueden observar los extremos en la punta de arriba de la grafica, que simbolizan los artículos más valiosos del mercado, que parecen ser independientes del resto del mercado.
 
-Siguiente punto es que ahora ya sabemos que tenemos muchos extremos y podemos plantearnos preguntas como:
+En tercer lugar, nuevamente se observa un salto entre los meses de marzo y abril del 2022. Es aquí nuevamente donde se empiezan a contabilizar muchos más cosméticos en la media de precios del mercado.
+
+El siguiente punto a tratar es que ahora ya sabemos que tenemos muchos extremos y podemos plantearnos preguntas como:
 
 -   ¿Estos extremos son siempre los mismos? Y si no, ¿que les paso? ¿Fué un pico puntual, una burbuja, manipulación de mercado?
 
@@ -341,9 +363,7 @@ ggplot(stats_por_arma %>% filter(!is.na(CV), CV > 0), aes(x = CV)) +
 
 Lo primero que podemos concluir de todo es que el primer diagrama es muy poco explicativo, hace falta mucha resolución en un area específica y después mantener elementos muy extremos, lo cual es imposible sin que sea un diagrama con muchos rangos, con amplitud pequeña y que sea exagerademente ancho. Por lo que pasamos a escala logarítmica y de ahí podemos sacar más.
 
-¿Ahora que podemos concluir de estas gráficas?
-
--   **/ToDo**
+De estas graficas podemos concluir que existe una volatilidad significativa en el mercado durante el periodo de tiempo considerado. Alrededor de un 50% de volatilidad entre todos los items con respecto a la media de precios del mercado.
 
 Volvemos para responder a las preguntas anteriores:
 
@@ -352,7 +372,7 @@ Volvemos para responder a las preguntas anteriores:
 Por ahora limpiamos el entorno y seguimos con el siguiente tema.
 
 ```{r, warning=FALSE, results='hide'}
-rm(data_month, df_long, df_long_filtered, df_sin_outliers, mercado_media, modelo, stats_por_arma)
+rm(data_month, df_long, df_long_filtered, df_sin_outliers, mercado_media, modelo, stats_por_arma, items_available)
 detach("package:tidyverse", unload = TRUE)
 detach("package:dplyr", unload = TRUE)
 detach("package:tidyr", unload = TRUE)

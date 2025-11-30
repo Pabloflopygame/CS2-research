@@ -108,6 +108,20 @@ round(coef(modelo)[["mes_num"]], 2)
 # El mercado suele subir 44(CN¥) por mes 
 # ~50 centimos de euro a día de hoy.
 
+items_available <- df_long %>% 
+  group_by(fecha) %>% 
+  summarise(nas=sum(is.na(precio)))
+
+ggplot(items_available) + 
+  geom_col(aes(fecha, nas), fill = "steelblue") +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Número de items con precio NA según el mes",
+    x = "Mes",
+    y = "NAs"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 ggplot(df_long %>% filter(!is.na(precio)), aes(x = fecha, y = precio)) +
   geom_boxplot(fill = "skyblue") +
   theme_minimal(base_size = 14) +
