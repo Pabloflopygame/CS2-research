@@ -232,55 +232,7 @@ ggplot(items_available) +
 Sin embargo, este crecimiento no solo se debe la introducción de nuevos cosméticos. El crecimiento también se da por la actualización anunciada en 2023 del paso de CSGO a CS2. Esto explicaría el pico que se observa entre marzo y abril del 2023 en la media del mercado a pesar de que el número de NAs entre dichos meses no haya cambiado significativamente.
 
 Ahora intentemos hacer un diagrama de caja y bigotes para ver la desviación durante cada mes.
-
-```{r}
-ggplot(df_long %>% filter(!is.na(precio)), 
-       aes(x = fecha, 
-           y = precio)) +
-  geom_boxplot(fill = "skyblue") +
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Distribución mensual del precio de las skins (boxplot)",
-    x = "Mes",
-    y = "Precio (CN¥)"
-  ) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1)
-  )
-```
-
-No se ve nada, hay MUCHOS outliers e incluso quitandolos:
-
-```{r}
-df_sin_outliers <- df_long %>%
-  group_by(fecha) %>%
-  filter({
-    Q1  <- quantile(precio, 0.25, na.rm = TRUE)
-    Q3  <- quantile(precio, 0.75, na.rm = TRUE)
-    IQR <- Q3 - Q1
-    lower <- Q1 - 1.5 * IQR
-    upper <- Q3 + 1.5 * IQR
-    precio >= lower & precio <= upper
-  }) %>%
-  ungroup()
-
-ggplot(df_sin_outliers, 
-       aes(x = fecha, 
-           y = precio)) +
-  geom_boxplot(fill = "skyblue") +
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Distribución mensual del precio de las skins (outliers eliminados)",
-    x = "Mes",
-    y = "Precio (CN¥)"
-  ) +
-  theme(axis.text.x = element_text(angle = 45, 
-                                   hjust = 1))
-```
-
-Incluso sin outliers los datos están tan dispersos que el diagrama de caja tiene problemas mostrando datos.
-
-Para solucionar esto usaremos una escala logirtmica y re-añadiremos los valores extremos:
+Para poder ver los datos usaremos una escala logirtmica dejando los valores extremos presentes:
 
 ```{r}
 ggplot(df_long %>% filter(!is.na(precio), precio > 0), 
@@ -304,13 +256,7 @@ En segundo lugar, se pueden observar los extremos en la punta de arriba de la gr
 
 En tercer lugar, nuevamente se observa un salto entre los meses de marzo y abril del 2022. Es aquí nuevamente donde se empiezan a contabilizar muchos más cosméticos en la media de precios del mercado.
 
-El siguiente punto a tratar es que ahora ya sabemos que tenemos muchos extremos y podemos plantearnos preguntas como:
-
--   ¿Estos extremos son siempre los mismos? Y si no, ¿que les paso? ¿Fué un pico puntual, una burbuja, manipulación de mercado?
-
--   ¿El crecimiento de cada skin es el que esperaríamos con el crecimiento del mercado y de esa forma explicando la escala logarítmica? ¿Porque nos hace falta esta escala, la respuesta está enlazada con una propiedad interesante de las observaciones?
-
-Pero antes de entrar en esas preguntas viene bien tener métricas como la varianza o el coeficiente de variación y ver que conclusiones podemos sacar de ellas:
+Ahora procederemos a analizar la varianza y el coeficiente de variación para ver que conclusiones podemos sacar de ellas. Emplearemos una vez más escalas logaritmicas para poder visualizar la distribución de datos mejor:
 
 ```{r}
 stats_por_arma <- df_long %>%
@@ -322,15 +268,6 @@ stats_por_arma <- df_long %>%
     CV = ifelse(media == 0, NA, sd / media)
   )
 
-ggplot(stats_por_arma %>% filter(!is.na(varianza)), aes(x = varianza)) +
-  geom_histogram(bins = 60, fill = "steelblue") +
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Distribución de la varianza del precio por skin",
-    x = "Varianza",
-    y = "Frecuencia"
-  )
-
 ggplot(stats_por_arma %>% filter(!is.na(varianza), varianza > 0), aes(x = varianza)) +
   geom_histogram(bins = 60, fill = "steelblue") +
   scale_x_log10() +
@@ -338,15 +275,6 @@ ggplot(stats_por_arma %>% filter(!is.na(varianza), varianza > 0), aes(x = varian
   labs(
     title = "Distribución de la varianza por skin (escala log)",
     x = "Varianza (log10)",
-    y = "Frecuencia"
-  )
-
-ggplot(stats_por_arma %>% filter(!is.na(CV)), aes(x = CV)) +
-  geom_histogram(bins = 60, fill = "darkorange") +
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Distribución del coeficiente de variación (CV) por skin",
-    x = "Coeficiente de variación",
     y = "Frecuencia"
   )
 
@@ -361,13 +289,21 @@ ggplot(stats_por_arma %>% filter(!is.na(CV), CV > 0), aes(x = CV)) +
   )
 ```
 
-Lo primero que podemos concluir de todo es que el primer diagrama es muy poco explicativo, hace falta mucha resolución en un area específica y después mantener elementos muy extremos, lo cual es imposible sin que sea un diagrama con muchos rangos, con amplitud pequeña y que sea exagerademente ancho. Por lo que pasamos a escala logarítmica y de ahí podemos sacar más.
+En primer lugar se puede observar que la mayoría de las varianzas de los precios de los items rondan cerca del orden de 10^2 o 10^3. Es decir, una buena parte del mercado tiene una base de varianza baja entre 10 y 100 centiyuanes.
 
-De estas graficas podemos concluir que existe una volatilidad significativa en el mercado durante el periodo de tiempo considerado. Alrededor de un 50% de volatilidad entre todos los items con respecto a la media de precios del mercado.
+Además, existe una asimetria hacia la derecha donde se observa una cola que registra valores de varianza del orden de 10^6 centiyuanes e incluso más, que corresponde a las skins más volatiles.
 
-Volvemos para responder a las preguntas anteriores:
+También se observa otro pico en los ordenes más pequeños, que corresponden a items cuyos precios apenas varían. Normalmente suelen ser items de muy poco valor y de los que hay gran abundancia en el mercado.
 
-**/ToDo**
+Pasando a los coeficientes de variación, se puede observar en la grafica que estos mayoritariamente rondan cerca del 30-50% y que la distribución tiene una mayor simetría. Una vez más se observa una cola hacia la derecha para los items con mayor variabilidad y en los que son más riesgosos invertir.
+
+Para poder obtener una estimación general de la volatilidad del mercado obtenemos la media de los coeficientes de variación:
+
+```{r}
+mean(stats_por_arma$CV, na.rm=TRUE)
+```
+
+Podemos observar que entre 2021 y 2024 el mercado tuvo una volatilidad aproximadamente del 38%. En los mercados una volatilidad entre el 10 y el 30% se considera alta. Por lo tanto podemos concluir que en el periodo del 2021 al 2024 el mercado fue muy volatil.
 
 Por ahora limpiamos el entorno y seguimos con el siguiente tema.
 
