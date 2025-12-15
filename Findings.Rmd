@@ -209,7 +209,7 @@ modelo <- lm(media_precio ~ mes_num, data = mercado_media)
 round(coef(modelo)[["mes_num"]], 2)
 ```
 
-Podemos ver que el mercado crece, y la linea verde es una regreción lineal que nos dirá el crecimiento de media con su pendiente, en este caso 44(CN¥) por mes (\~50 centimos de euro con conversión actual).
+Podemos ver que el mercado crece, y la linea verde es una regresión lineal que nos dirá el crecimiento de media con su pendiente, en este caso 44(CN¥) por mes (\~50 centimos de euro con conversión actual).
 
 Este crecimiento se puede dar a la introducción de nuevos cosméticos al juego con el paso del tiempo. Podemos observar en la siguiente grafica la cantidad de artículos con precio NA según el mes. A medida que la cantidad de NAs decrece, la media del mercado sube. El pico que se observa entre marzo y abril del 2022 corresponde con una introducción significativa de items al juego:
 
@@ -232,7 +232,7 @@ ggplot(items_available) +
 Sin embargo, este crecimiento no solo se debe la introducción de nuevos cosméticos. El crecimiento también se da por la actualización anunciada en 2023 del paso de CSGO a CS2. Esto explicaría el pico que se observa entre marzo y abril del 2023 en la media del mercado a pesar de que el número de NAs entre dichos meses no haya cambiado significativamente.
 
 Ahora intentemos hacer un diagrama de caja y bigotes para ver la desviación durante cada mes.
-Para poder ver los datos usaremos una escala logirtmica dejando los valores extremos presentes:
+Para poder ver los datos usaremos una escala logaritmica dejando los valores extremos presentes:
 
 ```{r}
 ggplot(df_long %>% filter(!is.na(precio), precio > 0), 
@@ -250,11 +250,11 @@ ggplot(df_long %>% filter(!is.na(precio), precio > 0),
                                    hjust = 1))
 ```
 
-Lo primero a mencionar es la falta de extremos inferiores. No hay porque el mínimo valor que puede tener es 0.02 mientras que el extremo inferior empieza en \~0.001, por lo que no existen.
+Lo primero a mencionar es la falta de extremos inferiores. No hay porque el mínimo valor que puede tener es 0.02 mientras que el extremo inferior empieza en \~0.001, por lo que no existen. Estos valores que no se han graficado corresponden a los items cuyos precios son muy bajos.
 
 En segundo lugar, se pueden observar los extremos en la punta de arriba de la grafica, que simbolizan los artículos más valiosos del mercado, que parecen ser independientes del resto del mercado.
 
-En tercer lugar, nuevamente se observa un salto entre los meses de marzo y abril del 2022. Es aquí nuevamente donde se empiezan a contabilizar muchos más cosméticos en la media de precios del mercado.
+En tercer lugar, nuevamente se observa un salto entre los meses de marzo y abril del 2022. Es aquí nuevamente donde se empiezan a contabilizar muchos más cosméticos en la media de precios del mercado. También se observa como el precio de los outliers aumenta incluso más, acercandose a los 10^6 centiyuanes.
 
 Ahora procederemos a analizar la varianza y el coeficiente de variación para ver que conclusiones podemos sacar de ellas. Emplearemos una vez más escalas logaritmicas para poder visualizar la distribución de datos mejor:
 

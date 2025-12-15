@@ -223,6 +223,7 @@ ggplot(stats_por_arma %>% filter(!is.na(varianza), varianza > 0), aes(x = varian
     x = "Varianza (log10)",
     y = "Frecuencia"
   )
+
 # Este ayuda bastante más podemos ver que un buen trozo ~30% tiene una  
 # varianza de casi 0. Otro trozo de ~40% tiene entre 0 y 10_000.
 # El restante tiene entre 10_000 hasta valores tan absurdos como 10**12
@@ -254,10 +255,19 @@ ggplot(stats_por_arma %>% filter(!is.na(CV), CV > 0), aes(x = CV)) +
 # una variación de ~0.005...
 
 
+df_long_filtered %>% group_by(fecha) %>% 
+  summarise(total = sum(oferta, na.rm=T)) %>%
+  ggplot() + geom_col(aes(fecha, total)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+q <- quantile(df_long_filtered$precio, 0.75, na.rm=T) + IQR(df_long_filtered$precio, na.rm=T) * 1.5
+outliers <- df_long_filtered[df_long_filtered$precio >= q]
+
 # ----cleanup----
 # Hay que quitar todo lo que usaste para que no interfiera con la siguiente
 # persona que quiera ejecutar código.
-rm(data_month, df_long, df_long_filtered, df_sin_outliers, mercado_media, modelo, stats_por_arma)
+rm(data_month, df_long, df_long_filtered, df_sin_outliers, mercado_media, modelo, stats_por_arma, items_available)
 detach("package:tidyverse", unload = TRUE)
 detach("package:dplyr", unload = TRUE)
 detach("package:tidyr", unload = TRUE)
