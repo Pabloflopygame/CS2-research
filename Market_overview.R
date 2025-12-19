@@ -261,8 +261,75 @@ df_long_filtered %>% group_by(fecha) %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
-q <- quantile(df_long_filtered$precio, 0.75, na.rm=T) + IQR(df_long_filtered$precio, na.rm=T) * 1.5
-outliers <- df_long_filtered[df_long_filtered$precio >= q]
+# ====================== PROBABILIDADES Y CAJAS ============================
+
+# Fracture Case
+
+probs <- c(0.79923, 0.15985, 0.03197, 0.00639, 0.00256) # Probabilidad de que te salga un solo item de cada color
+wear_ranges <- c(0.00, 0.07, 0.15, 0.38, 0.45, 1.00) # Rangos de desgaste de las armas
+wear <- c("Factory New", 
+          "Minimal Wear",
+          "Field-Tested", 
+          "Well-Worn", 
+          "Battle-Scarred")
+
+fracture_weapons <- c("Negev | Ultralight",
+               "P2000 | Gnarled",
+               "SG 553 | Ol' Rusty",
+               "SSG 08 | Mainframe 001",
+               "P250 | Cassette",
+               "P90 | Freight",
+               "PP-Bizon | Runic",
+               "MAG-7 | Monster Call",
+               "Tec-9 | Brother",
+               "MAC-10 | Allure",
+               "Galil AR | Connexion",
+               "MP5-SD | Kitbash",
+               "M4A4 | Tooth Fairy",
+               "Glock-18 | Vogue",
+               "XM1014 | Entombed",
+               "Desert Eagle | Printstream",
+               "AK-47 | Legion of Anubis",
+               "Special Item")
+
+rarity <- c(7, 5, 3, 2, 1) # Cuantos items de la caja pertenecen a cada color (en orden de azul a rojo)
+
+fracture_case <- data.frame(weapons=fracture_weapons, probs=rep(probs/rarity, rarity))
+
+fracture_case$min_wear = c(0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 
+                           0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00) # los desgastes minimos de las armas
+
+fracture_case$max_wear = c(0.78, 1.00, 1.00, 1.00, 0.60, 1.00, 1.00, 1.00, 1.00, 1.00, 
+                           0.80, 0.80, 0.73, 0.75, 0.50, 0.80, 0.70, 1.00) # los desgastes maximos de las armas
+
+# NOTA: NO HE AÑADIDO A LA CAJA LOS CUCHILLOS PORQUE SON 52 Y HAY QUE METERLOS MANUALMENTE.
+# POR LO TANTO EL CODIGO NO FUNCIONA BIEN SI SALE UN CUCHILLO EN EL SIMULADOR (no encontrará el precio asociado ni su nombre)
+
+# ============== SIMULADOR DE GAMBLING =======================
+
+gamble <- function(n_items, date) {
+  samp <- data.frame(weapons=sample(fracture_case$weapons, n_items, replace=T, fracture_case$probs))
+  
+  samp$stat = runif(n_items) < 0.10 # Tiene StatTrak? (10% usan en el juego al parecer)
+  
+  indexes <- match(samp$weapons, fracture_case$weapons)
+  samp$wear <- cut(fracture_case$min_wear[indexes] + (runif(nrow(samp)) * (fracture_case$max_wear[indexes] - fracture_case$min_wear[indexes])), 
+                   wear_ranges, 
+                   wear) # Calculamos el desgaste del arma y clasificamos ese desgaste
+  
+  samp$weapons <- paste0(ifelse(samp$stat, "★ StatTrak™ ",  ""), samp$weapons,
+                         " (", samp$wear, ")") # Construimos la string del arma con su desgaste y si tiene StatTrak
+  
+  df_date <- df_long_filtered %>% filter(fecha == date) # Tenemos que coger los precios de un mes particular
+  samp$price <- (df_date %>% pull(precio))[match(samp$weapons, df_date %>% pull(nombre))]
+  
+  return(samp)
+}
+
+test <- gamble(10, "2023-03")
+
+beneficios <- replicate(10, sum(gamble(10, "2023-03")$price)) # 10 simulaciones en las que abres 10 items
+ggplot() + geom_col(aes(seq(1:10), beneficios), fill="darkgreen")
 
 # ----cleanup----
 # Hay que quitar todo lo que usaste para que no interfiera con la siguiente
