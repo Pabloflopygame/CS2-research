@@ -303,7 +303,7 @@ fracture_case$max_wear = c(0.78, 1.00, 1.00, 1.00, 0.60, 1.00, 1.00, 1.00, 1.00,
                            0.80, 0.80, 0.73, 0.75, 0.50, 0.80, 0.70, 1.00) # los desgastes maximos de las armas
 
 # NOTA: NO HE AÑADIDO A LA CAJA LOS CUCHILLOS PORQUE SON 52 Y HAY QUE METERLOS MANUALMENTE.
-# POR LO TANTO EL CODIGO NO FUNCIONA BIEN SI SALE UN CUCHILLO EN EL SIMULADOR (no encontrará el precio asociado ni su nombre)
+# POR LO TANTO EL CODIGO NO FUNCIONA BIEN SI SALE UN CUCHILLO EN EL SIMULADOR (saldrá NA en el precio y no se encuentra el nombre)
 
 # ============== SIMULADOR DE GAMBLING =======================
 
@@ -317,7 +317,7 @@ gamble <- function(n_items, date) {
                    wear_ranges, 
                    wear) # Calculamos el desgaste del arma y clasificamos ese desgaste
   
-  samp$weapons <- paste0(ifelse(samp$stat, "★ StatTrak™ ",  ""), samp$weapons,
+  samp$weapons <- paste0(ifelse(samp$stat, "StatTrak™ ",  ""), samp$weapons,
                          " (", samp$wear, ")") # Construimos la string del arma con su desgaste y si tiene StatTrak
   
   df_date <- df_long_filtered %>% filter(fecha == date) # Tenemos que coger los precios de un mes particular
@@ -326,10 +326,17 @@ gamble <- function(n_items, date) {
   return(samp)
 }
 
-test <- gamble(10, "2023-03")
+beneficios <- replicate(1000, sum(gamble(10, "2023-03")$price) - 17.60 * 10) # 50 simulaciones en las que abres 10 cajas
+ggplot() + geom_col(aes(seq(1:1000), beneficios), fill=ifelse(beneficios < 0, "darkred", "darkgreen")) +
+  labs(title="Beneficios de abrir 10 cajas", x="Simulación", y="Beneficios") +
+  geom_hline(yintercept = 0)
 
-beneficios <- replicate(10, sum(gamble(10, "2023-03")$price)) # 10 simulaciones en las que abres 10 items
-ggplot() + geom_col(aes(seq(1:10), beneficios), fill="darkgreen")
+ggplot() + geom_histogram(aes(x=beneficios[beneficios > 0], y=..density..), fill="darkgreen", bins = 60) +
+  geom_histogram(aes(x=beneficios[beneficios < 0], y=-..density..), fill="darkred", bins = 60) +
+  labs(title="Beneficios de abrir 10 cajas para 1000 simulaciones", x="Beneficios", y="Densidad") +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0)
+
 
 # ----cleanup----
 # Hay que quitar todo lo que usaste para que no interfiera con la siguiente
