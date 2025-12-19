@@ -47,7 +47,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Durante este trabajo usaremos términos asociados a este mercado como "skins", "armas" o "loot boxes". Por lo que antes de comenzar queremos explicarlos para evitar confución.
 
-Primero y antes de todo, el mercado de CSGO (también conocido como Counter Strike Global Offensive o Counter Strike 2 después de la actualización del 27 de Septiembre de 2023) es un mercado que intercambia dinero (en el caso de nuestra base de datos Yuanes Chinos) por agentes cosméticos dentro del juego que después pueden ser re-vendidos entre usuarios.
+Primero y antes de todo, el mercado de CSGO (también conocido como Counter-Strike: Global Offensive o Counter-Strike 2 después de la actualización del 27 de Septiembre de 2023) es un mercado que intercambia dinero (en el caso de nuestra base de datos Yuanes Chinos) por agentes cosméticos dentro del juego que después pueden ser re-vendidos entre usuarios.
 
 Mientras los usuarios juegan tienen una probabilidad de conseguir una "loot box" que con una "key" que tiene un precio fijo durante todo el tiempo de 2.50\$ en EEUU y 2.10€ en EU (exeptuando loot boxes especiales que se consiguen en eventos como competiciones que requieres llaves más caras para abrirlas). Con esta "loot box" y "key" que les llamaremos caja y llave respectivamente, pueden conseguir un cosmético aleatorio dentro de lo que cada caja traiga (que varían cada temporada).
 
@@ -229,7 +229,7 @@ ggplot(items_available) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-Sin embargo, este crecimiento no solo se debe la introducción de nuevos cosméticos. El crecimiento también se da por la actualización anunciada en 2023 del paso de CSGO a CS2. Esto explicaría el pico que se observa entre marzo y abril del 2023 en la media del mercado a pesar de que el número de NAs entre dichos meses no haya cambiado significativamente.
+Sin embargo, este crecimiento no solo se debe la introducción de nuevos cosméticos. El crecimiento también se da por la actualización anunciada en 2023 del paso de Counter-Strike: Global Offesnive a Counter-Strike 2. Esto explicaría el pico que se observa entre marzo y abril del 2023 en la media del mercado a pesar de que el número de NAs entre dichos meses no haya cambiado significativamente.
 
 Ahora intentemos hacer un diagrama de caja y bigotes para ver la desviación durante cada mes.
 Para poder ver los datos usaremos una escala logaritmica dejando los valores extremos presentes:
@@ -327,6 +327,15 @@ Idea: ¿Existe una relación precio-demanda? Y si es así, ¿De que manera?
 ### Loot boxes
 
 Probabilidades, precio y rentabilidad (si es posible asociarlo con lo anterior, pero no irse muy loco)
+
+Para tratar este apartado de nuestro trabajo, se estudiará las probabilidades y rentabilidad de una caja de Counter-Strike en particular, el Fracture Case.
+
+A la hora de abrir una caja, un item pasa por 3 sorteos:
+- Un sorteo para decidir qué item es elegido.
+- Un sorteo para decidir si tiene StatTrak el item elegido o no.
+- Un sorteo para decidir qué desgaste tiene el item elegido.
+
+Una vez realizado los 3 sorteos, el item es entregado al usuario.
 
 **/ToDo**
 
