@@ -127,13 +127,13 @@ df_long_filtered <- data_month_fixed %>%
 
 # Fracture Case
 
-probs <- c(0.79923, 0.15985, 0.03197, 0.00639, 0.00256) # Probabilidad de que te salga un solo item de cada color
-wear_ranges <- c(0.00, 0.07, 0.15, 0.38, 0.45, 1.00) # Rangos de desgaste de las armas
-wear <- c("Factory New", 
-          "Minimal Wear",
-          "Field-Tested", 
-          "Well-Worn", 
-          "Battle-Scarred")
+probs <- data.frame(category=c("Mil-Spec", "Restricted", "Classified", "Covert", "Special Item"), 
+                    prob=c(0.79923, 0.15985, 0.03197, 0.00639, 0.00256))
+
+wear <- list(
+  names = c("Factory New", "Minimal Wear", "Field-Tested", "Well-Worn", "Battle-Scarred"),
+  breaks = c(0.00, 0.07, 0.15, 0.38, 0.45, 1.00)
+)
 
 fracture_weapons <- c("Negev | Ultralight",
                       "P2000 | Gnarled",
@@ -156,7 +156,7 @@ fracture_weapons <- c("Negev | Ultralight",
 
 rarity <- c(7, 5, 3, 2, 1) # Cuantos items de la caja pertenecen a cada color (en orden de azul a rojo)
 
-fracture_case <- data.frame(weapons=fracture_weapons, probs=rep(probs/rarity, rarity))
+fracture_case <- data.frame(weapons=fracture_weapons, probs=rep(probs$prob/rarity, rarity))
 
 fracture_case$min_wear = c(0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 
                            0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00) # los desgastes minimos de las armas
@@ -176,20 +176,26 @@ gamble <- function(n_items, date) {
   
   indexes <- match(samp$weapons, fracture_case$weapons)
   samp$wear <- cut(fracture_case$min_wear[indexes] + (runif(nrow(samp)) * (fracture_case$max_wear[indexes] - fracture_case$min_wear[indexes])), 
-                   wear_ranges, 
-                   wear) # Calculamos el desgaste del arma y clasificamos ese desgaste
+                   wear$breaks, 
+                   wear$names) # Calculamos el desgaste del arma y clasificamos ese desgaste
   
-  samp$weapons <- paste0(ifelse(samp$stat, "StatTrak™ ",  ""), samp$weapons,
-                         " (", samp$wear, ")") # Construimos la string del arma con su desgaste y si tiene StatTrak
   
   df_date <- df_long_filtered %>% filter(fecha == date) # Tenemos que coger los precios de un mes particular
+  
+  samp$weapons <- ifelse(
+    samp$weapons == "Special Item",
+    
+    sample((df_date %>% filter(grepl("Knife", nombre))) %>% pull(nombre), n_items),
+    
+    paste0(ifelse(samp$stat, "StatTrak™ ",  ""), samp$weapons, " (", samp$wear, ")")) # Construimos la string del arma con su desgaste y si tiene StatTrak
+  
   samp$price <- (df_date %>% pull(precio))[match(samp$weapons, df_date %>% pull(nombre))]
   
   return(samp)
 }
 
-beneficios <- replicate(1000, sum(gamble(10, "2023-03")$price) - 17.60 * 10) # 50 simulaciones en las que abres 10 cajas
-ggplot() + geom_col(aes(seq(1:1000), beneficios), fill=ifelse(beneficios < 0, "darkred", "darkgreen")) +
+beneficios <- replicate(100, sum(gamble(10, "2023-03")$price) - 17.60 * 10) # 50 simulaciones en las que abres 10 cajas
+ggplot() + geom_col(aes(seq(1:100), beneficios), fill=ifelse(beneficios < 0, "darkred", "darkgreen")) +
   labs(title="Beneficios de abrir 10 cajas", x="Simulación", y="Beneficios") +
   geom_hline(yintercept = 0)
 
