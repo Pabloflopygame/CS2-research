@@ -304,19 +304,6 @@ mean(stats_por_arma$CV, na.rm=TRUE)
 
 Podemos observar que entre 2021 y 2024 el mercado tuvo una volatilidad aproximadamente del 38%. En los mercados una volatilidad entre el 10 y el 30% se considera alta. Por lo tanto podemos concluir que en el periodo del 2021 al 2024 el mercado fue muy volatil.
 
-Por ahora limpiamos el entorno y seguimos con el siguiente tema.
-
-```{r, warning=FALSE, results='hide'}
-rm(data_month, df_long, df_long_filtered, df_sin_outliers, mercado_media, modelo, stats_por_arma, items_available)
-detach("package:tidyverse", unload = TRUE)
-detach("package:dplyr", unload = TRUE)
-detach("package:tidyr", unload = TRUE)
-detach("package:purrr", unload = TRUE)
-detach("package:ggplot2", unload = TRUE)
-detach("package:lubridate", unload = TRUE)
-gc()
-```
-
 ### Relación precio/demanda
 
 Idea: ¿Existe una relación precio-demanda? Y si es así, ¿De que manera?
@@ -325,13 +312,11 @@ Idea: ¿Existe una relación precio-demanda? Y si es así, ¿De que manera?
 
 ### Loot boxes
 
-Probabilidades, precio y rentabilidad (si es posible asociarlo con lo anterior, pero no irse muy loco)
-
 Para tratar este apartado de nuestro trabajo, se estudiará las probabilidades y rentabilidad de una caja de Counter-Strike en particular, el Fracture Case.
 
-A la hora de abrir una caja, un item pasa por 3 sorteos:
+A la hora de abrir una caja, se producen 3 sorteos:
 
-\- Un sorteo para decidir qué item es elegido.
+\- Un sorteo para decidir qué item de la caja es elegido.
 
 \- Un sorteo para decidir si tiene StatTrak el item elegido o no.
 
@@ -346,7 +331,7 @@ Cada item en toda caja de Counter-Strike se clasifica en 1 de 5 categorias, de m
 ```{r}
 probs <- data.frame(category=c("Mil-Spec", "Restricted", "Classified", "Covert", "Special Item"), prob=c(0.79923, 0.15985, 0.03197, 0.00639, 0.00256))
 
-head(probs)
+probs
 ```
 
 En una caja, la probabilidad individual de cada item de ser elegido se calcula como la división de la probabilidad de que sea elegida la categoría a la que pertenece entre el número de items que pertenecen a dicha categoría en la caja. En el caso del Fracture Case:
@@ -380,7 +365,9 @@ fracture_case
 
 #### Segundo sorteo
 
-Como mencionado anteriormente, el segundo sorteo se realiza una vez elegido el arma para decidir si este tiene StatTrak o no. Para decidirlo, sencillamente se comprueba si un número aleatorio generado entre 0 y 1 es inferior a 0.10, es decir, existe un 10% de probabilidad de que el item sacado tenga StatTrak. En R la implementación se haría así con la distribución uniforme:
+Como mencionado anteriormente, el segundo sorteo se realiza una vez elegido el arma para decidir si este tiene StatTrak o no. StatTrak no es nada más que un contador que se le añade a una skin que lo hace más valiosa que una sin StatTrak.
+
+Para decidir si un arma tiene StatTrak sencillamente se comprueba si un número aleatorio generado entre 0 y 1 es inferior a 0.10, es decir, existe un 10% de probabilidad de que el item tenga StatTrak. En R la implementación se haría así con la distribución uniforme:
 
 ```{r, eval=F}
 runif(1) < 0.10
@@ -388,20 +375,22 @@ runif(1) < 0.10
 
 #### Tercer sorteo
 
-El último sorteo es para determinar el desgaste del arma elegido. Cuanto menos desgastado, más valioso es el arma en precio. El desgaste de un arma se calcula con la siguiente formula:
-$$Wear = Min + (Random \times (Max - Min))$$
-Donde Min y Max es el desgaste mínimo y máximo que puede tener el arma elegido (son valores programados internamente en el juego) y random es un número aleatorio entre 0 y 1. En R la ecuación se implementaría algo así:
-```{r, eval=F}
+El último sorteo es para determinar el desgaste del arma elegido. Cuanto menos desgastado, más valioso es el arma en precio. El desgaste de un arma se calcula con la siguiente formula: $$Wear = Min + (Random \times (Max - Min))$$Donde Min y Max es el desgaste mínimo y máximo que puede tener el arma elegido (son valores programados internamente en el juego) y Random es un número aleatorio entre 0 y 1. En R la ecuación se implementaría algo así:
+
+```{r}
 fracture_case$min_wear = c(0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 
                            0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00) # los desgastes minimos de las armas
 
 fracture_case$max_wear = c(0.78, 1.00, 1.00, 1.00, 0.60, 1.00, 1.00, 1.00, 1.00, 1.00, 
                            0.80, 0.80, 0.73, 0.75, 0.50, 0.80, 0.70, 1.00) # los desgastes maximos de las armas
+```
 
+```{r, eval=F}
 fracture_case$min_wear + (runif(1) * (fracture_case$max_wear - fracture_case$min_wear))
 ```
 
 En función del valor de desgaste calculado, el desgaste se clasifica en 1 de 5 categorías de menor a mayor desgaste: Factory New, Minimal Wear, Field-Tested, Well-Worn y Battle-Scarred. Para que el desgaste se pueda clasificar, este tiene que caer en uno de los siguientes rangos:
+
 ```{r}
 wear <- list(
   names = c("Factory New", "Minimal Wear", "Field-Tested", "Well-Worn", "Battle-Scarred"),
@@ -413,8 +402,64 @@ data.frame(wear$names, lower = c(0.00, 0.07, 0.15, 0.38, 0.45),
 ```
 
 #### Rentabilidad
-Ahora procederemos a simular la rentabilidad de abrir una cantidad determinada de cajas Fracture. Para ello
 
+Ahora procederemos a simular la rentabilidad de abrir una cantidad determinada de cajas Fracture. Para ello crearemos un pequeño simulador en el que sacamos n_items de la caja en una fecha de precios determinada llamada date:
+
+```{r}
+gamble <- function(n_items, date) {
+  samp <- data.frame(weapons=sample(fracture_case$weapons, n_items, replace=T, fracture_case$probs)) # Cogemos los nombres de n_items aleatoriamente
+  
+  samp$stat = runif(n_items) < 0.10 # Tiene StatTrak? (10% probabilidad)
+  
+  indexes <- match(samp$weapons, fracture_case$weapons)
+  samp$wear <- cut(fracture_case$min_wear[indexes] + (runif(nrow(samp)) * (fracture_case$max_wear[indexes] - fracture_case$min_wear[indexes])), 
+                   wear$breaks, 
+                   wear$names) # Calculamos el desgaste del arma y clasificamos ese desgaste
+  
+  
+  df_date <- df_long_filtered %>% filter(fecha == date) # Cogemos los precios de un mes en particular
+  
+  samp$weapons <- ifelse(
+    samp$weapons == "Special Item",
+    
+    sample((df_date %>% filter(grepl("Knife", nombre))) %>% pull(nombre), n_items), # Cogemos un cuchillo si nos ha tocado un item special.
+    
+    paste0(ifelse(samp$stat, "StatTrak™ ",  ""), samp$weapons, " (", samp$wear, ")")) # Construimos la string del arma con su desgaste y si tiene StatTrak.
+  
+  samp$price <- (df_date %>% pull(precio))[match(samp$weapons, df_date %>% pull(nombre))] # Cogemos el precio del item elegido
+  
+  return(samp) # Retornamos el dataframe conteniendo todos los items que hemos sacado de la caja
+}
+```
+
+Ahora graficaremos la rentabilidad de abrir 10 cajas en 100 simulaciones distintas usando los valores de precio de por ejemplo marzo del 2023. Tenemos que tener en cuenta el precio de una llave de la caja Fracture cuesta 2.50\$ o 17.60 yuanes. Debemos restarlo a los precios de los items conseguidos en cada simulación para conseguir el beneficio real de abrir las cajas.
+
+```{r, warning=F}
+beneficios <- replicate(100, sum(gamble(10, "2023-03")$price) - 17.60 * 10) # 100 simulaciones en las que abres 10 cajas
+
+ggplot() + geom_histogram(aes(x=beneficios[beneficios > 0], y=..density..), fill="darkgreen", bins = 60) +
+  geom_histogram(aes(x=beneficios[beneficios < 0], y=-..density..), fill="darkred", bins = 60) +
+  labs(title="Beneficios de abrir 10 cajas para 100 simulaciones", x="Beneficios", y="Densidad") +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0)
+```
+
+Se puede observar que existen grandes perdidas puesto que la densidad de beneficios se concentra debajo del 0. Además las ganancias que sí se consiguen suelen ser con un beneficio relativamente pequeño, aunque existe la posibilidad de conseguir beneficios muy grandes al haber sacado un item special o una skin con mucha rareza. Podemos ver numericamente los beneficios de todas las simulaciones y ver que en la mayoría de simulaciones se pierde dinero. La suma de los beneficios puede dar positivo en el caso de que uno tenga mucha suerte, pero si se corren más simulaciones los beneficios tenderán a ser negativos.
+
+```{r}
+data.frame(simulación=1:100,beneficios)
+sum(beneficios)
+```
+
+Finalmente, se podría haber considerado utilizar los precios de cualquier otra fecha para observar si varían los beneficios. Sin embargo, independientemente de la media de precios del mercado las probabilidades van a seguir siendo las mismas para las skins más comunes y más raras. Por lo tanto, van a seguir habiendo mayores o menores perdidas en general. Efectivamente, la afirmación de que nunca ganas dinero abriendo cajas se confirma.
+
+Como curiosidad, podemos calcular la probabilidad de que nos toque el mejor caso posible, un item especial con StatTrak y que esté en estado Factory New. Como todos los sucesos son independientes multiplicamos las probabilidades:
+
+```{r}
+(probs %>% pull(prob))[match("Special Item", probs$category)] * 0.1 * 0.07 * 100 # Probabilidad de Special Item * Probabilidad StatTrak * Probabilidad Factory New * 100 (porcentaje)
+```
+
+Es decir, la probabilidad es de un 0.001792%.
 
 ## Conclusiones
 

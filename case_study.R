@@ -195,12 +195,11 @@ gamble <- function(n_items, date) {
 }
 
 beneficios <- replicate(100, sum(gamble(10, "2023-03")$price) - 17.60 * 10) # 50 simulaciones en las que abres 10 cajas
-ggplot() + geom_col(aes(seq(1:100), beneficios), fill=ifelse(beneficios < 0, "darkred", "darkgreen")) +
-  labs(title="Beneficios de abrir 10 cajas", x="Simulación", y="Beneficios") +
-  geom_hline(yintercept = 0)
 
 ggplot() + geom_histogram(aes(x=beneficios[beneficios > 0], y=..density..), fill="darkgreen", bins = 60) +
   geom_histogram(aes(x=beneficios[beneficios < 0], y=-..density..), fill="darkred", bins = 60) +
   labs(title="Beneficios de abrir 10 cajas para 1000 simulaciones", x="Beneficios", y="Densidad") +
   geom_hline(yintercept = 0) +
   geom_vline(xintercept = 0)
+
+(probs %>% pull(prob))[match("Special Item", probs$category)] * 0.1 * 0.07 * 100

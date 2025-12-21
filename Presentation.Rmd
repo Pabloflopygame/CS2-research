@@ -9,29 +9,149 @@ output: powerpoint_presentation
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-AQUÍ VAMOS A HACER NUESTRO Powerpoint. 
-CREO QUE SERÁ FACIL PARA EXPORTAR.
-- Pablo
+## Tabla de probabilidades de items
+Cada item de cualquier caja pertenece a una de las siguientes categorías:
+```{r}
+probs <- data.frame(category=c("Mil-Spec", "Restricted", "Classified", "Covert", "Special Item"), prob=c(0.79923, 0.15985, 0.03197, 0.00639, 0.00256))
 
-## R Markdown
-
-[]
-
-## Slide with Bullets
-
-- Bullet 1
-- Bullet 2
-- Bullet 3
-
-## Slide with R Output
-
-```{r cars, echo = TRUE}
-summary(cars)
+probs
 ```
 
-## Slide with Plot
-
-```{r pressure}
-plot(pressure)
+## Probabilidad de StatTrak
+Usamos la distribución uniforme con el metodo *runif* que genera valores aleatorios entre un mínimo y máximo. Cada arma tiene una probabilidad del 10% de tener StatTrak:
+```{r, echo=T, eval=F}
+runif(1) < 0.10 # Genera un valor aleatorio entre 0 y 1 (primer argumento es el número de valores a generar, NO las cotas)
 ```
+
+## Probabilidad de desgaste
+Se decide mediante la formula:
+$$Wear = Min + (Random \times (Max - Min))$$
+
+- Min: Mínimo desgaste del arma
+- Max: Máximo desgaste del arma
+- Random: Número aleatorio entre 0 y 1
+
+## Probabilidad de desgaste
+Clasificación del desgaste en función del desgaste calculado:
+```{r}
+wear <- list(
+  names = c("Factory New", "Minimal Wear", "Field-Tested", "Well-Worn", "Battle-Scarred"),
+  breaks = c(0.00, 0.07, 0.15, 0.38, 0.45, 1.00)
+)
+
+data.frame(wear$names, lower = c(0.00, 0.07, 0.15, 0.38, 0.45),
+           upper = c(0.07, 0.15, 0.38, 0.45, 1.00))
+```
+
+## Rentabilidad del Fracture Case
+```{r, message=F, warning=F}
+library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(ggplot2)
+library(lubridate)
+data_month <- readRDS("./out/data_monthly.rds")
+df_long_filtered <- data_month %>%
+  pivot_longer(
+    cols = -nombre,
+    names_to = "fecha",
+    values_to = "valor"
+  ) %>% 
+  mutate(
+    precio = map_dbl(valor, function(x) {
+      if (is.null(x)) return(NA_real_)
+      as.numeric(x["precio"])
+    }),
+    oferta = map_dbl(valor, function(x) {
+      if (is.null(x)) return(NA_real_)
+      as.numeric(x["oferta"])
+    })
+  )
+```
+
+```{r}
+fracture_weapons <- c("Negev | Ultralight",
+                      "P2000 | Gnarled",
+                      "SG 553 | Ol' Rusty",
+                      "SSG 08 | Mainframe 001",
+                      "P250 | Cassette",
+                      "P90 | Freight",
+                      "PP-Bizon | Runic",
+                      "MAG-7 | Monster Call",
+                      "Tec-9 | Brother",
+                      "MAC-10 | Allure",
+                      "Galil AR | Connexion",
+                      "MP5-SD | Kitbash",
+                      "M4A4 | Tooth Fairy",
+                      "Glock-18 | Vogue",
+                      "XM1014 | Entombed",
+                      "Desert Eagle | Printstream",
+                      "AK-47 | Legion of Anubis",
+                      "Special Item")
+
+rarity <- c(7, 5, 3, 2, 1) # Cuantos items de la caja pertenecen a cada categoría (los 7 primeros a Mil-Spec, los siguientes 5 a Restricted, y así sucesivamente).
+
+fracture_case <- data.frame(weapons=fracture_weapons, probs=rep(probs$prob/rarity, rarity))
+```
+
+```{r}
+fracture_case$min_wear = c(0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 
+                           0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00) # los desgastes minimos de las armas
+
+fracture_case$max_wear = c(0.78, 1.00, 1.00, 1.00, 0.60, 1.00, 1.00, 1.00, 1.00, 1.00, 
+                           0.80, 0.80, 0.73, 0.75, 0.50, 0.80, 0.70, 1.00) # los desgastes
+```
+
+```{r}
+gamble <- function(n_items, date) {
+  samp <- data.frame(weapons=sample(fracture_case$weapons, n_items, replace=T, fracture_case$probs)) # Cogemos los nombres de n_items aleatoriamente
+  
+  samp$stat = runif(n_items) < 0.10 # Tiene StatTrak? (10% probabilidad)
+  
+  indexes <- match(samp$weapons, fracture_case$weapons)
+  samp$wear <- cut(fracture_case$min_wear[indexes] + (runif(nrow(samp)) * (fracture_case$max_wear[indexes] - fracture_case$min_wear[indexes])), 
+                   wear$breaks, 
+                   wear$names) # Calculamos el desgaste del arma y clasificamos ese desgaste
+  
+  
+  df_date <- df_long_filtered %>% filter(fecha == date) # Cogemos los precios de un mes en particular
+  
+  samp$weapons <- ifelse(
+    samp$weapons == "Special Item",
+    
+    sample((df_date %>% filter(grepl("Knife", nombre))) %>% pull(nombre), n_items), # Cogemos un cuchillo si nos ha tocado un item special.
+    
+    paste0(ifelse(samp$stat, "StatTrak™ ",  ""), samp$weapons, " (", samp$wear, ")")) # Construimos la string del arma con su desgaste y si tiene StatTrak.
+  
+  samp$price <- (df_date %>% pull(precio))[match(samp$weapons, df_date %>% pull(nombre))] # Cogemos el precio del item elegido
+  
+  return(samp) # Retornamos el dataframe conteniendo todos los items que hemos sacado de la caja
+}
+```
+
+```{r, warning=F}
+beneficios <- replicate(100, sum(gamble(10, "2023-03")$price) - 17.60 * 10) # 100 simulaciones en las que abres 10 cajas
+
+ggplot() + geom_histogram(aes(x=beneficios[beneficios > 0], y=..density..), fill="darkgreen", bins = 60) +
+  geom_histogram(aes(x=beneficios[beneficios < 0], y=-..density..), fill="darkred", bins = 60) +
+  labs(title="Beneficios de abrir 10 cajas para 100 simulaciones", x="Beneficios", y="Densidad") +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0)
+```
+
+## Rentabilidad del Fracture Case
+Beneficios de algunas simulaciones:
+```{r}
+head(data.frame(simulación=1:100,beneficios))
+```
+La mayoría de las simulaciones retornan beneficios negativos
+
+## Rentabilidad del Fracture Case
+Suma de beneficios totales de todas las simulaciones:
+```{r, echo=T}
+sum(beneficios)
+```
+
+
 
