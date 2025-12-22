@@ -285,7 +285,7 @@ ggplot(mercado_media, aes(x = as.numeric(factor(fecha)), y = suma_precios)) +
   labs(
     title = "Evolución del precio menusal del mercado",
     x = "Mes",
-    y = "Precio medio (CN¥)"
+    y = "Precio medido (CN¥)"
   ) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
@@ -1040,7 +1040,6 @@ df_long_filtered <- data_month_fixed %>%
     })
   )
 ```
-
 Para tratar este apartado de nuestro trabajo, se estudiará las probabilidades y rentabilidad de una caja de Counter-Strike en particular, el Fracture Case.
 
 A la hora de abrir una caja, se producen 3 sorteos:
@@ -1053,9 +1052,9 @@ A la hora de abrir una caja, se producen 3 sorteos:
 
 Una vez realizado los 3 sorteos, el item es entregado al usuario.
 
-#### Primer sorteo
+### Primer sorteo
 
-Cada item en toda caja de Counter-Strike se clasifica en 1 de 5 categorias, de más a menos común: Mil-Spec, Restricted, Classified, Covert y Special Item. Cada categoría tiene 5 veces más probabilidades de ser elegido que el anterior. La tabla de probabilidades se vería así:
+Cada item en toda caja de Counter-Strike se clasifica en 1 de 5 categorias, de más a menos común: Mil-Spec, Restricted, Classified, Covert y Special Item. Cada categoría tiene 5 veces más probabilidades de ser elegido que el anterior. La tabla de probabilidades se vería así, sacada del anexo número 2:
 
 ```{r}
 probs <- data.frame(category=c("Mil-Spec", "Restricted", "Classified", "Covert", "Special Item"), prob=c(0.79923, 0.15985, 0.03197, 0.00639, 0.00256))
@@ -1092,7 +1091,7 @@ fracture_case <- data.frame(weapons=fracture_weapons, probs=rep(probs$prob/rarit
 fracture_case
 ```
 
-#### Segundo sorteo
+### Segundo sorteo
 
 Como mencionado anteriormente, el segundo sorteo se realiza una vez elegido el arma para decidir si este tiene StatTrak o no. StatTrak no es nada más que un contador que se le añade a una skin que lo hace más valiosa que una sin StatTrak.
 
@@ -1102,9 +1101,9 @@ Para decidir si un arma tiene StatTrak sencillamente se comprueba si un número 
 runif(1) < 0.10
 ```
 
-#### Tercer sorteo
+### Tercer sorteo
 
-El último sorteo es para determinar el desgaste del arma elegido. Cuanto menos desgastado, más valioso es el arma en precio. El desgaste de un arma se calcula con la siguiente formula: $$Wear = Min + (Random \times (Max - Min))$$Donde Min y Max es el desgaste mínimo y máximo que puede tener el arma elegido (son valores programados internamente en el juego) y Random es un número aleatorio entre 0 y 1. En R la ecuación se implementaría algo así:
+El último sorteo es para determinar el desgaste del arma elegido. Cuanto menos desgastado, más valioso es el arma en precio. El desgaste de un arma se calcula con la siguiente formula: $$Wear = Min + (Random \times (Max - Min))$$Donde Min y Max es el desgaste mínimo y máximo que puede tener el arma elegido (son valores programados internamente en el juego, ver anexo 3) y Random es un número aleatorio entre 0 y 1. En R la ecuación se implementaría algo así:
 
 ```{r}
 fracture_case$min_wear = c(0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 
@@ -1118,7 +1117,7 @@ fracture_case$max_wear = c(0.78, 1.00, 1.00, 1.00, 0.60, 1.00, 1.00, 1.00, 1.00,
 fracture_case$min_wear + (runif(1) * (fracture_case$max_wear - fracture_case$min_wear))
 ```
 
-En función del valor de desgaste calculado, el desgaste se clasifica en 1 de 5 categorías de menor a mayor desgaste: Factory New, Minimal Wear, Field-Tested, Well-Worn y Battle-Scarred. Para que el desgaste se pueda clasificar, este tiene que caer en uno de los siguientes rangos:
+En función del valor de desgaste calculado, el desgaste se clasifica en 1 de 5 categorías de menor a mayor desgaste: Factory New, Minimal Wear, Field-Tested, Well-Worn y Battle-Scarred. Para que el desgaste se pueda clasificar este tiene que caer en uno de los siguientes rangos, también extraidos del anexo 3:
 
 ```{r}
 wear <- list(
@@ -1130,7 +1129,7 @@ data.frame(wear$names, lower = c(0.00, 0.07, 0.15, 0.38, 0.45),
            upper = c(0.07, 0.15, 0.38, 0.45, 1.00))
 ```
 
-#### Rentabilidad
+### Rentabilidad
 
 Ahora procederemos a simular la rentabilidad de abrir una cantidad determinada de cajas Fracture. Para ello crearemos un pequeño simulador en el que sacamos n_items de la caja en una fecha de precios determinada llamada date:
 
@@ -1176,7 +1175,7 @@ ggplot() + geom_histogram(aes(x=beneficios[beneficios > 0], y=..density..), fill
 Se puede observar que existen grandes perdidas puesto que la densidad de beneficios se concentra debajo del 0. Además las ganancias que sí se consiguen suelen ser con un beneficio relativamente pequeño, aunque existe la posibilidad de conseguir beneficios muy grandes al haber sacado un item special o una skin con mucha rareza. Podemos ver numericamente los beneficios de todas las simulaciones y ver que en la mayoría de simulaciones se pierde dinero. La suma de los beneficios puede dar positivo en el caso de que uno tenga mucha suerte, pero si se corren más simulaciones los beneficios tenderán a ser negativos.
 
 ```{r}
-data.frame(simulación=1:100,beneficios)
+head(data.frame(simulación=1:100,beneficios))
 sum(beneficios)
 ```
 
@@ -1201,3 +1200,15 @@ Honestamente, entramos a este estudio pensando encontrar estadísticas de un mer
 Con esto quiero decir que esperábamos que CSGO fuera el "antagonista" que creara un mercado para beneficiarse de su audiencia, pero al contrario encontramos que la audiencia en si era la que se peleaba entre ella para lograr beneficios.
 
 Esto es un tema poco estudiado, pero claramente en este tipo de economías se puede observar como se crea un mercado como el de la bolsa en periodos mas cortos y podrían ser fuentes para futuros economistas para poder estudiar estos fenómenos en más detalle.
+
+## Anexos
+
+[2]
+
+Página web oficial de CS:GO china donde se han publicado las probabilidades de cada categoría de item:
+
+<https://www.csgo.com.cn/news/gamebroad/20170911/206155.shtml>
+
+[3]
+
+items_game.txt en los archivos internos de Counter-Strike 2.

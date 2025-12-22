@@ -336,8 +336,6 @@ fmt_si <- scales::label_number(scale_cut = scales::cut_si(" "))
 
 ## Indice
 
--   Introducción
-
 -   Tratado de datos
 
 -   Estadísticas del mercado
@@ -363,7 +361,7 @@ ggplot(mercado_media, aes(x = as.numeric(factor(fecha)), y = suma_precios)) +
   labs(
     title = "Evolución del precio menusal del mercado",
     x = "Mes",
-    y = "Precio medio (CN¥)"
+    y = "Precio medido (CN¥)"
   ) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
@@ -817,3 +815,21 @@ Suma de beneficios totales de todas las simulaciones:
 ```{r, echo=T}
 sum(beneficios)
 ```
+
+# Conclusiones
+
+-   Alta liquidez global con fuerte concentración de valor
+
+-   Relación negativa precio–liquidez y estructura competitiva
+
+-   Coexistencia de items muy activos y una pequeña masa inactiva
+
+-   Distorsión del mercado por bots y nuevo contenido
+
+-   Dominio de inversores automatizados y apuestas en cajas
+
+-   Riesgos éticos por exposición de menores a dinámicas de apuesta
+
+-   El conflicto principal es entre usuarios, no contra la plataforma
+
+-   Mercado emergente comparable a dinámicas financieras reales
