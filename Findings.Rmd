@@ -11,8 +11,6 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-[subtitulo, frase con "hook"] **/ToDo**
-
 ## Indice
 
 -   [Introducción]
@@ -25,25 +23,15 @@ knitr::opts_chunk$set(echo = TRUE)
 
 -   [Análisis de los datos]
 
-    -   [Vista general del mercado]
-
-    -   [Relación precio/demanda]
-
-    -   [Loot boxes]
-
-    -   []
-
 -   [Conclusiones]
-
--   [Anexos]
 
 ## Introducción
 
-**/ToDo** \<-- Lo último que se hace.
+En esta investigación trataremos de dar luz a un mercado muy grande pero que está oculto detrás de un videojuego, queremos ver que tanto se comporta como uno usual y como de controlado está. Usaremos los métodos aprendidos durante el año y aquellos que nos enseñaron en primer año en la clase de economía empresarial.
 
 ## Términos
 
-Durante este trabajo usaremos términos asociados a este mercado como "skins", "armas" o "loot boxes". Por lo que antes de comenzar queremos explicarlos para evitar confución.
+Durante este trabajo usaremos términos asociados a este mercado como "skins", "armas" o "loot boxes". Por lo que antes de comenzar queremos explicarlos para evitar confusión.
 
 Primero y antes de todo, el mercado de CSGO (también conocido como Counter Strike Global Offensive o Counter Strike 2 después de la actualización del 27 de Septiembre de 2023) es un mercado que intercambia dinero (en el caso de nuestra base de datos Yuanes Chinos) por agentes cosméticos dentro del juego que después pueden ser re-vendidos entre usuarios.
 
@@ -53,7 +41,7 @@ Existen muchas cajas que un usuario normal puede conseguir y por lo tanto muchos
 
 Ahora, ya sabemos de donde salen los cosméticos, porqué crece el mercado y conceptos como caja y llave, ahora ataquemos el concepto de "skin" y "armas". Realmente el concepto correcto es cosméticos, pero como los cosméticos son principalmente usados en las armas del juego hay veces que los usamos intercanbiablemente. Ahora, nuestro conjunto de datos no incluye las keys pero si las cajas, por lo que es importante recordar que cuando hablamos de "skins", "armas", "items" no es más que elementos que puedes comprar del mercado para re-venderlos, abrirlas si son cajas o usarlas si son cosméticos.
 
-Por último tampoco mencionaremos skins hechas a mano. Dicho de manera simple, mezclando skins con stickers y cambiando el nombre o inclusive subiendo statísticas del arma individual como "kill counter" puedes crear un arma única. Lo ignoramos porque estas suelen ser objetos de collecionismo que rara vez circula por el mercado y a lo mucho tienen 2-3 ventas con precios super altos (especialmente si la hizo una persona famosa), y tampoco podríamos añadirlas porque la base de datos no las cuenta.
+Por último tampoco mencionaremos skins hechas a mano. Dicho de manera simple, mezclando skins con stickers y cambiando el nombre o inclusive subiendo estadísticas del arma individual como "kill counter" puedes crear un arma única. Lo ignoramos porque estas suelen ser objetos de colecionismo que rara vez circula por el mercado y a lo mucho tienen 2-3 ventas con precios super altos (especialmente si la hizo una persona famosa), y tampoco podríamos añadirlas porque la base de datos no las cuenta.
 
 ## Objetivos del trabajo
 
@@ -62,8 +50,6 @@ Por último tampoco mencionaremos skins hechas a mano. Dicho de manera simple, m
 -   Predecir su crecimiento/decrecimiento 
 
 -   Analizar qué fluctuaciones se puede esperar (volatilidad del mercado)
-
--   Investigar qué elementos del mercado obtienen la mejor rentabilidad
 
 -   \*Analizar las probabilidades, precios y rentabilidad asociadas a las "loot boxes".
 
@@ -81,59 +67,963 @@ Notas importantes de esta fuente de datos son:
 
 -   Las medias para cualquier dataframe diferente a raw se calculan como: `aggregate = dataPoints.filter(d => d > 0).length == 0 ? 0 : dataPoints.filter(d => d > 0).median()`.
 
--   Los datos se guardan como centiyuanes (para que sean números enteros). Por lo que tuvimos que pasarlo a Yuanes normales (CN¥) diviendo entre 100.
+-   Los datos se guardan como centiyuanes (para que sean números enteros). Por lo que tuvimos que pasarlo a Yuanes normales (CN¥) dividiendo entre 100.
 
--   Hay \~300 items que no fueron medidos y se pueden encontrar cuales fueron mirando un .txt dentro del repertorio [aquí](https://github.com/atalantus/buff-price-history-archive/blob/main/missing-items.txt).
+-   Hay \~300 items que no fueron medidos y se pueden encontrar cuales fueron mirando un .txt dentro del repertorio [[aquí]{.underline}](https://github.com/atalantus/buff-price-history-archive/blob/main/missing-items.txt).
 
 -   No contiene skins hechas a mano (con stickers) o con nombres especiales, por ejemplo una skin "firmada" por una persona famosa, ya que cada una es única y no es representativo de lo que la skin original valdría.
 
+## Tratamiento de datos {data-link="Análisis de los datos"}
+
+Aunque no es el enfoqué de este trabajo, al haber tomado una cantidad de trabajo substancial consideramos apropiado hablar sobre como pasamos los datos de su formato comprimido a uno más manejable.
+
+Todo esto lo trata el main y en caso que se quiera actualizar con nuevos datos este fichero llama a los scripts que harán este trabajo posible. Este trabajo fue posible a causa de nuestra habilidad para pasar json comprimidos a un formato .rds comprimido que permita almacenamiento y carga/descarga rápida. De no haber podido haber hecho esto los tiempo de carga hubieran sido tan elevados que lo hubiera hecho impráctico.
+
+Aunque no vayamos a entrar en detalle en el código invito a cualquier lector a que mire los scripts para que pueda ver el trabajo que tomó (tanto en tiempo de computación como en código) para transformar un .json a los dataframes que damos por sentado en este trabajo.
+
 ## Análisis de los datos
 
-En este apartado hablaremos de la parte importante de la investigación, las operaciones que realizamos para encontrar información de los datos.
+### Limpiar el dataframe {data-link="Análisis de los datos"}
 
-### Vista general del mercado
+Cargamos las librerías que usaremos y el dataframe.
 
-Primero de todo, necesitamos ver como es el mercado en términos generales. Para eso usaremos el dataframe de months ya que es más ligero y nos permite ver lo que buscamos, una vista general.
-
-```{r, message=FALSE, warning=FALSE, results='hide'}
+```{r}
 library(tidyverse)
 library(dplyr)
 library(tidyr)
 library(purrr)
 library(ggplot2)
 library(lubridate)
+library(nortest)
+library(scales)
 data_month <- readRDS("./out/data_monthly.rds")
 ```
 
-Pero primero necesitamos saber la escala de nuestra vista por lo qué, ¿Cuales son los rangos de datos que trataremos?
+Primero de todo debemos tratar el principal problema con el dataframe, que usa el sistema de Steam donde si no hay oferta el precio es 0. Esto es problemático porque hay skins que se venden rara vez pero por mucho dinero y no es representativo para el valor del mercado que porque no se venda su valor es 0. Para solventar esto haremos que reserve el valor del último que tengan (si era 0 porque es un item nuevo y nunca se ha comprado y vendido seguirá estando y tendremos que sesgarlos cuando haga falta) pero esto permite una representación real de un mercado.
 
 ```{r}
-df_long <- data_month %>%
-  pivot_longer(cols = -nombre,
-               names_to = "fecha",
-               values_to = "valor"
-               ) %>% 
-  mutate(precio = map_dbl(valor, 
-                          function(x) {
-                            if (is.null(x)) return(NA_real_)
-                            as.numeric(x["precio"])
-                            }
-                          )
-         )
+# Helper: parsea una celda a (oferta, precio) numéricos o missing
+.parse_cell <- function(cell) {
+  # missing: NULL real, "NULL", NA, length 0
+  if (is.null(cell) || length(cell) == 0 ||
+      (length(cell) == 1 && (is.na(cell) || identical(cell, "NULL")))) {
+    return(list(missing = TRUE, oferta = NA_real_, precio = NA_real_))
+  }
+  
+  # Si viene como vector/list con nombres (oferta, precio)
+  if ((is.atomic(cell) || is.list(cell)) && length(cell) >= 2) {
+    nm <- names(cell)
+    if (!is.null(nm) && all(c("oferta", "precio") %in% nm)) {
+      return(list(
+        missing = FALSE,
+        oferta  = as.numeric(cell[["oferta"]]),
+        precio  = as.numeric(cell[["precio"]])
+      ))
+    }
+    # Si viene sin nombres pero con dos valores (oferta, precio)
+    if (length(cell) == 2) {
+      return(list(
+        missing = FALSE,
+        oferta = as.numeric(cell[[1]]),
+        precio = as.numeric(cell[[2]])
+      ))
+    }
+  }
+  
+  # Si viene como string "0.00, 0.27"
+  if (is.character(cell) && length(cell) == 1) {
+    parts <- strsplit(cell, ",", fixed = TRUE)[[1]]
+    if (length(parts) >= 2) {
+      return(list(
+        missing = FALSE,
+        oferta = as.numeric(trimws(parts[1])),
+        precio = as.numeric(trimws(parts[2]))
+      ))
+    }
+  }
+  
+  # Fallback: si hay algún formato raro
+  warning("Formato de celda no reconocido; se deja como missing. str(cell): ",
+          paste(capture.output(str(cell)), collapse = " "))
+  list(missing = TRUE, oferta = NA_real_, precio = NA_real_)
+}
 
+fix_zero_prices_locf <- function(df, id_col = "nombre") {
+  month_cols <- setdiff(names(df), id_col)
+  month_cols <- month_cols[order(as.Date(paste0(month_cols, "-01")))]
+  
+  # Asegura list-cols (para poder guardar NULL y pares oferta/precio)
+  for (col in month_cols) {
+    if (!is.list(df[[col]])) df[[col]] <- as.list(df[[col]])
+  }
+  
+  # Normaliza: cada celda -> NULL o c(oferta=..., precio=...) numérico
+  df[month_cols] <- lapply(df[month_cols], function(col) {
+    lapply(col, function(cell) {
+      p <- .parse_cell(cell)
+      if (p$missing) return(NULL)
+      c(oferta = p$oferta, precio = p$precio)
+    })
+  })
+  
+  # Extrae matrices numéricas (rápido para aplicar LOCF por fila)
+  oferta <- sapply(df[month_cols], function(col)
+    vapply(col, function(cell) if (is.null(cell)) NA_real_ else unname(cell[["oferta"]]), numeric(1))
+  )
+  precio <- sapply(df[month_cols], function(col)
+    vapply(col, function(cell) if (is.null(cell)) NA_real_ else unname(cell[["precio"]]), numeric(1))
+  )
+  
+  # Corrige por fila: si oferta==0 & precio==0 => precio = último precio > 0 anterior
+  for (i in seq_len(nrow(df))) {
+    last_pos <- NA_real_
+    for (j in seq_along(month_cols)) {
+      o <- oferta[i, j]
+      p <- precio[i, j]
+      
+      if (!is.na(p) && p > 0) last_pos <- p
+      
+      if (!is.na(o) && o == 0 && !is.na(p) && p == 0 && !is.na(last_pos)) {
+        precio[i, j] <- last_pos
+      }
+    }
+  }
+  
+  # Vuelca precios al df (manteniendo NULL intactos)
+  for (j in seq_along(month_cols)) {
+    colname <- month_cols[j]
+    col <- df[[colname]]
+    newp <- precio[, j]
+    
+    for (i in seq_along(col)) {
+      cell <- col[[i]]
+      if (is.null(cell)) next
+      cell[["precio"]] <- newp[[i]]
+      col[[i]] <- cell
+    }
+    df[[colname]] <- col
+  }
+  
+  df
+}
 
-filter(df_long, precio == min(precio, na.rm = TRUE))
-filter(df_long, precio == max(precio, na.rm = TRUE))
+data_month_adjusted <- fix_zero_prices_locf(data_month)
 ```
 
-Entonces podemos esperar valores entre 0 y \~3,500,000.
+### Min y Max del Dataframe
 
-En el caso de la skin mas cara es una histórica que ha día de hoy sigue siendo prevalente, por curiosidad si desean verla la pueden encontrar en anexos[1].
+Simplemente hacemos un formato que permita hacer la búsqueda de forma más rápida y lo mostramos.
 
-En el caso de los 0's habría que mirar porque los precios están a 0, comúnmente es porque no existe gente dispuesta a vender, por lo que no existen ofertas y por tanto precio. Para asegurar esta teoría es tan simple hacer:
+```{r}
+df_long <- data_month_adjusted %>%
+  pivot_longer(
+    cols = -nombre,
+    names_to = "fecha",
+    values_to = "valor"
+  ) %>% 
+  mutate(
+    oferta = map_dbl(valor, \(x) {
+      if (is.null(x)) return(NA_real_)
+      as.numeric(x["oferta"])
+    }),
+    precio = map_dbl(valor, \(x) {
+      if (is.null(x)) return(NA_real_)
+      as.numeric(x["precio"])
+    })
+  ) %>%
+  select(-valor)
 
-```{r, warning = FALSE}
-df_long_filtered <- data_month %>%
+df_long %>%
+  summarise(
+    min_precio              = min(precio, na.rm = TRUE),
+    max_precio              = max(precio, na.rm = TRUE),
+    min_precio_real         = min(precio[precio > 0], na.rm = TRUE),
+    min_oferta              = min(oferta, na.rm = TRUE),
+    min_oferta_mayor_que_0  = min(oferta[oferta > 0], na.rm = TRUE),
+    max_oferta              = max(oferta, na.rm = TRUE)
+  )
+```
+
+Como podemos ver, podemos esperar un rango real esperable de:
+
+-   Precio: [0.02, 3499990]
+
+-   Demanda: [1, 274841]
+
+Para el caso en el que no usemos casos ideales podemos esperar ofertas y densidades de 0 (las máximas se mantienen igual).
+
+### Gráficos de Métricas
+
+Generamos un dataframe con los datos de interés.
+
+```{r}
+mercado_media <- df_long %>%
+  filter(!(oferta == 0 & precio == 0)) %>%
+  group_by(fecha) %>%
+  summarise(
+    media_precio  = mean(precio,  na.rm = TRUE),
+    media_demanda = mean(oferta,  na.rm = TRUE),
+    
+    suma_precios  = sum(precio,   na.rm = TRUE),
+    suma_demanda  = sum(oferta,   na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(fecha) %>%
+  mutate(mes_num = row_number())
+```
+
+Y con ese ahora podemos crear los gráficos.
+
+```{r}
+ggplot(mercado_media, aes(x = as.numeric(factor(fecha)), y = suma_precios)) +
+  geom_col(aes(x = as.numeric(factor(fecha))), fill = "steelblue") +
+  scale_x_continuous(
+    breaks = seq_along(mercado_media$fecha),
+    labels = mercado_media$fecha
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Evolución del precio menusal del mercado",
+    x = "Mes",
+    y = "Precio medio (CN¥)"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Aquí podemos ver la evolución del mercado mensualmente, es decir que es la suma de todos los precios durante ese mes. No usamos la formula económica que es la demanda \* precio porque tendríamos que sesgar más de la mitad de nuestros datos ya que los datos no recuerdan la demanda para fechas antes de febrero de 2023.
+
+De igual manera, para el usuario medio este es el crecimiento que le importa, el de los precios y como podemos ver hemos visto un crecimiento constante con una subida cuando salió CS2 en septiembre de 2023 y el inicio de un descenso al final del dataframe, indicando una bajada.
+
+Esta bajada se debe en parte al reciente uso de "bot farms" para conseguir items usando IAs remotas, de esa manera tienen varias copias del juego corriendo a la vez en un ordenador, generando "drops" a medida que estas juegan entre ellas para después venderá. Esto a su vez se volvió especialmente rentable en China donde su economía permite tales gastos eléctricos para recuperarlo con la venta ilegal de items en mercados Europeos y Estado Unidense.
+
+\*Este dato fue logrado gracias a jugadores profesionales como "SSpookyce" que generosamente se ofreció a darnos contextos sobre algunos eventos que encontramos en este trabajo.
+
+```{r}
+mercado_media_demanda <- mercado_media %>% 
+  filter(fecha >= "2023-02")
+
+ggplot(mercado_media_demanda, aes(x = mes_num, y = suma_demanda)) +
+  geom_col(fill = "orange") +
+  scale_x_continuous(
+    breaks = mercado_media_demanda$mes_num,
+    labels = mercado_media_demanda$fecha
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Evolución de la demanda mensual del mercado",
+    x = "Mes",
+    y = "Demanda (unidades)"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Aquí se ve la oferta de items y como esta creció con el tiempo, también se ve la bajada en 2024, realmente esta subió pero nuestros datos están incompletos en ese mes, por lo que esto explica porque no lo pudimos explicar sin ayuda externa del los jugadores.
+
+```{r}
+ggplot(df_long %>% filter(!(oferta == 0 & precio == 0)), aes(x = fecha, y = precio)) +
+  geom_boxplot(fill = "skyblue") +
+  scale_y_log10() +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Precio mensual de las skins (escala log)",
+    x = "Mes",
+    y = "Precio (CN¥)"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Podemos ver como los valores extremos se reducen (en distancia y cantidad) a medida que pasa el tiempo a su vez que crecen las cajas e intervalos a medida que pasa el tiempo, indicando un rango de valores más distribuidos.
+
+```{r}
+ggplot(df_long %>% filter(!(oferta == 0 & precio == 0), fecha >= "2023-02") , aes(x = fecha, y = oferta)) +
+  geom_boxplot(fill = "orange") +
+  scale_y_log10() +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Demanda mensual de las skins (escala log)",
+    x = "Mes",
+    y = "Demanda"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Para este caso vemos lo contrario, las cajas tienden a subir y la distribución a cerrarse. A su vez aumenta el numero de extremos y su distancia con el resto de valores, indicando una saturación de algunos items (exactamente lo que esperamos de las "bot farms" el mercado se infla de "drops" más comunes ya que para estos usuarios de IAs no les he de uso).
+
+### Normalidad
+
+```{r}
+df_year_weapon <- df_long %>%
+  mutate(
+    fecha = ym(fecha),
+    year  = year(fecha)
+  ) %>%
+  group_by(year, nombre) %>%
+  summarise(
+    media_precio  = mean(precio, na.rm = TRUE),
+    media_demanda = mean(oferta, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+df_year_weapon %>%
+  filter(media_precio > 0) %>% # para log10
+  mutate(x = log10(media_precio)) %>%
+  group_by(year) %>%
+  summarise(
+    n = n(),
+    shapiro_p = if (n() <= 5000) shapiro.test(x)$p.value else shapiro.test(sample(x, 5000))$p.value,
+    ad_p      = nortest::ad.test(x)$p.value,
+    lillie_p  = nortest::lillie.test(x)$p.value,
+    .groups = "drop"
+  )
+
+df_year_weapon_dem <- df_long %>%
+  mutate(fecha = ym(fecha)) %>%
+  filter(fecha >= ym("2023-02")) %>%
+  mutate(year = year(fecha)) %>%
+  group_by(year, nombre) %>%
+  summarise(media_demanda = mean(oferta, na.rm = TRUE), .groups = "drop")
+
+df_year_weapon_dem %>%
+  mutate(x = log1p(media_demanda)) %>% # admite ceros
+  group_by(year) %>%
+  summarise(
+    n = n(),
+    shapiro_p = if (n() <= 5000) shapiro.test(x)$p.value else shapiro.test(sample(x, 5000))$p.value,
+    ad_p      = nortest::ad.test(x)$p.value,
+    lillie_p  = nortest::lillie.test(x)$p.value,
+    .groups = "drop"
+  )
+```
+
+Al hacer los test vemos que los 2 primeros diagramas de la evolución del mercado pasan los tests para determinar la normalidad al tener un valor p muy pequeños (\< 0.01).
+
+```{r}
+df_year_weapon %>%
+  filter(media_precio > 0) %>%
+  mutate(x = log10(media_precio)) %>%
+  ggplot(aes(sample = x)) +
+  stat_qq() +
+  stat_qq_line() +
+  facet_wrap(~ year, scales = "free") +
+  theme_minimal()
+```
+
+En este test de normalidad podemos ver que la gran mayoría de datos se pegan a la diagonal que representan a la normal, pero el extremo superior se separa lentamente por los eventos previamente mencionados y los inferiores puedes ser seguramente ignorados ya que sale de nuestro rango de precios (no existen los negativos).
+
+```{r}
+df_year_weapon_dem %>%
+  mutate(x = log1p(media_demanda)) %>%
+  ggplot(aes(sample = x)) +
+  stat_qq() +
+  stat_qq_line() +
+  facet_wrap(~ year, scales = "free") +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "QQ-plot de la demanda media por arma (log1p) — por año",
+    x = "Cuantiles teóricos (Normal)",
+    y = "Cuantiles muestrales (log(1 + media de oferta))"
+  )
+```
+
+La demanda se pega más que los precios, con la misma desviación en ambos ejes. Nada fuera de lo esperable, lo único a destacar es como esta desviación empeora con el transcurso del tiempo.
+
+### Media y Varianza
+
+```{r}
+ggplot(mercado_media, aes(x = as.numeric(factor(fecha)), y = media_precio)) +
+  geom_col(aes(x = as.numeric(factor(fecha))), fill = "steelblue") +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 1.2, color = "darkgreen") +
+  scale_x_continuous(
+    breaks = seq_along(mercado_media$fecha),
+    labels = mercado_media$fecha
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Evolución del precio medio menusal del mercado",
+    x = "Mes",
+    y = "Precio medio (CN¥)"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Pendiente de la columna (crecimiento de media por mes)
+mercado_media$mes_num <- seq_len(nrow(mercado_media))
+modelo <- lm(media_precio ~ mes_num, data = mercado_media)
+
+summary(modelo)
+# más detalles
+
+round(coef(modelo)[["mes_num"]], 2)
+# El mercado suele subir 47.27(CN¥) por mes.
+# ~50 centimos de euro a día de hoy.
+```
+
+Como podemos ver la regresión lineal se ajusta bien a los datos de media y nos da una evolución mensual de 47.27 yuanes.
+
+```{r}
+mercado_media %>%
+  mutate(mes_num = row_number()) %>%
+  summarise(
+    grado_de_ajuste = summary(lm(media_precio ~ mes_num))$r.squared,
+    grado_de_ajuste_ajustado = summary(lm(media_precio ~ mes_num))$adj.r.squared,
+    raíz_del_error_cuadrático_medio = sqrt(mean(residuals(lm(media_precio ~ mes_num))^2))
+  )
+# datos del ajuste cuadrático, se ajusta bien con un 0.89
+
+ggplot(mercado_media_demanda, aes(x = mes_num, y = media_demanda)) +
+  geom_col(fill = "orange") +
+  stat_smooth(
+    method = "lm",
+    formula = y ~ log(x),
+    se = FALSE,
+    linewidth = 1.2,
+    color = "darkred"
+  ) +
+  scale_x_continuous(
+    breaks = mercado_media_demanda$mes_num,
+    labels = mercado_media_demanda$fecha
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Evolución de la demanda media mensual del mercado",
+    subtitle = "Ajuste logarítmico",
+    x = "Mes",
+    y = "Demanda media (unidades)"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Pendiente de la columna (crecimiento de media por mes)
+modelo_log <- lm(media_demanda ~ log(mes_num), data = mercado_media_demanda)
+
+summary(modelo_log)
+# más detalles
+
+round(coef(modelo_log)[["log(mes_num)"]], 2)
+# esto es para la fórmula de la pendiente: y^(m)=β0+β1log(m)
+# y lo que calculamos es m=mes_num y 𝛽1=78.83.
+# Tienes que hacer mates para sacarlo, pero claramente vemos que pasamos de ~50 a ~8.
+
+mercado_media_demanda %>%
+  summarise(
+    grado_de_ajuste = summary(modelo_log)$r.squared,
+    grado_de_ajuste_ajustado = summary(modelo_log)$adj.r.squared,
+    raíz_del_error_cuadrático_medio = sqrt(mean(residuals(modelo_log)^2))
+  )
+```
+
+El ajuste cuadrático lineal aquí nos da un valor de similitud de 0.2, mientras que con el logarítmico lo podemos subir a un 0.75. Al ser logarítmico su pendiente es variable, pero podemos ver como en unos meses pasamos de una pendiente de 50 a uno de 8. Con los datos pasados por el summary se puede modelar para calcular cualquier punto intermedio o futuro si fuera necesario con la fórmula `y^(m)=β0+β1log(m)` .
+
+```{r}
+mercado_var <- df_long %>%
+  filter(!(oferta == 0 & precio == 0)) %>%
+  group_by(fecha) %>%
+  summarise(
+    var_precio   = var(precio,  na.rm = TRUE),
+    var_demanda  = var(oferta,  na.rm = TRUE),
+    n_obs        = sum(!is.na(precio) & !is.na(oferta)),
+    .groups = "drop"
+  ) %>%
+  arrange(fecha) %>%
+  mutate(mes_num = row_number())
+
+ggplot(mercado_var, aes(x = as.numeric(factor(fecha)), y = var_precio)) +
+  geom_col(fill = "steelblue") +
+  scale_x_continuous(
+    breaks = seq_along(mercado_var$fecha),
+    labels = mercado_var$fecha
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Evolución de la varianza mensual del precio del mercado",
+    x = "Mes",
+    y = "Varianza del precio (CN¥²)"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Podemos ver que crece a medida que el mercado lo hace, con una bajada en 2022 que a nuestro conocimiento se debía a un problema con una "sticker" que daba problemas y torneos que terminaron con gente haciendo trampas dejando al mercado más conservador en tiempos de tanta incertidumbre en como evolucionaría.
+
+En 2024 en febrero se debe a un mes incompleto y terminó con una variación super alta, a su vez los bot farms se popularizaron empeorando la situación.
+
+```{r}
+ggplot(mercado_var %>% filter(fecha >= "2023-02"), aes(x = mes_num, y = var_demanda)) +
+  geom_col(fill = "orange") +
+  scale_x_continuous(
+    breaks = mercado_var$mes_num,
+    labels = mercado_var$fecha
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Evolución de la varianza mensual de la demanda del mercado",
+    x = "Mes",
+    y = "Varianza de la demanda (unidades²)"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+La varianza explotó sobre este periodo ya que salieron armas que son de las más populares hasta el día de hoy haciendo más extremos y mucha especulación del valor real de estas nuevas y llamativas armas.
+
+```{r}
+ggplot(df_year_weapon %>% filter(media_precio > 0),
+       aes(x = media_precio)) +
+  geom_histogram(aes(y = after_stat(density)), bins = 60)+
+  scale_x_log10() +
+  facet_wrap(~ year, scales = "free_y") +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Distribución de medias de valor por arma por año",
+    x = "Media de precio (CN¥, escala log10)",
+    y = "Frecuencia relativa"
+  )
+```
+
+Podemos ver como la distribución de precios se aleja de una normal a una distribución de 3 montañas, barato, normal y caro y evidentemente la cola de las muy caras que lentamente aumenta y crece.
+
+A su vez vemos que hay más items intermedios conectando estas 3 montañas una clara demostración de como han añadido más items y algunos han caído en estas zonas menos comunes uniendo más la distribución.\
+Quizás con más items que la gente no demanda tanto podríamos esperar a ver menos picos y un mercado más normalizado. Un claro ejemplo como un mercado con muchas opciones tiende a normalizarse sobre uno con pocas.
+
+```{r}
+ggplot(df_year_weapon_dem, aes(x = log1p(media_demanda))) +
+  geom_histogram(aes(y = after_stat(density)), bins = 60) +
+  facet_wrap(~ year, scales = "free_y") +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Distribución de medias de demanda por arma por año",
+    x = "log(1 + media de oferta)",
+    y = "Frecuencia relativa"
+  )
+```
+
+En la distribución podemos ver una distribución normal pero con 15%-20% de los items no tienen demanda al ser nuevos o raramente pedidos. Esto confronta la idea que más elección ayuda a normalizar el mercado, ya que normaliza los precios pero a su vez causa un problema de oferta ya que son menos probables de aparecer sobre otras y por lo tanto su venta es escasa por su baja demanda y precio.
+
+### Métricas del mercado
+
+```{r, echo=FALSE, warning=FALSE}
+# Helpers robustos
+safe_quantile <- function(x, p) {
+  x <- x[is.finite(x)]
+  if (length(x) == 0) return(NA_real_)
+  as.numeric(quantile(x, probs = p, na.rm = TRUE, names = FALSE))
+}
+
+safe_median <- function(x) {
+  x <- x[is.finite(x)]
+  if (length(x) == 0) return(NA_real_)
+  median(x, na.rm = TRUE)
+}
+
+safe_cor <- function(a, b) {
+  ok <- is.finite(a) & is.finite(b)
+  if (sum(ok) < 3) return(NA_real_)
+  cor(a[ok], b[ok])
+}
+
+
+# 1..7) Métricas MENSUALES (volumen, turnover, vwap, percentiles, breadth, concentración, correlación)
+metrics_mes <- df_long %>%
+  mutate(
+    fecha = ym(fecha),
+    dem_ok = fecha >= ym("2023-02")   # demanda fiable desde feb-2023
+  ) %>%
+  filter(!(oferta == 0 & precio == 0)) %>%      # quita solo los 0/0
+  group_by(fecha) %>%
+  summarise(
+    # (1) Volumen mensual real (unidades)
+    volumen_unidades = sum(oferta[dem_ok & oferta > 0], na.rm = TRUE),
+    
+    # (2) Valor transaccionado mensual (turnover)
+    turnover = sum((precio * oferta)[dem_ok & oferta > 0 & precio > 0], na.rm = TRUE),
+    
+    # (3) Precio ponderado por volumen (VWAP)
+    vwap = if_else(volumen_unidades > 0, turnover / volumen_unidades, NA_real_),
+    
+    # (4) Precio robusto: mediana + percentiles (sobre distribución cross-section del mes)
+    mediana_precio = safe_median(precio[precio > 0]),
+    p10_precio     = safe_quantile(precio[precio > 0], 0.10),
+    p90_precio     = safe_quantile(precio[precio > 0], 0.90),
+    
+    # (5) Breadth / amplitud: ítems con ventas y proporción activos
+    items_con_dato = n_distinct(nombre[!is.na(precio) | !is.na(oferta)]),
+    items_activos  = n_distinct(nombre[dem_ok & oferta > 0]),
+    prop_activos   = if_else(items_con_dato > 0, items_activos / items_con_dato, NA_real_),
+    
+    # (7) Correlación precio–demanda (cross-section del mes; en log para estabilidad)
+    cor_log_precio_dem = safe_cor(log(precio), log1p(oferta)),
+    
+    .groups = "drop"
+  ) %>%
+  arrange(fecha) %>%
+  mutate(mes_num = row_number())
+
+# (6) Concentración: Top-10 share + HHI (por volumen y por turnover)
+conc_mes <- df_long %>%
+  mutate(fecha = ym(fecha)) %>%
+  filter(fecha >= ym("2023-02")) %>%                 # demanda fiable
+  filter(!(oferta == 0 & precio == 0)) %>%
+  group_by(fecha, nombre) %>%
+  summarise(
+    vol_item = sum(oferta[oferta > 0], na.rm = TRUE),
+    val_item = sum((precio * oferta)[oferta > 0 & precio > 0], na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  group_by(fecha) %>%
+  summarise(
+    top10_share_vol = if_else(sum(vol_item, na.rm = TRUE) > 0,
+                              sum(sort(vol_item, decreasing = TRUE)[1:min(10, n())], na.rm = TRUE) / sum(vol_item, na.rm = TRUE),
+                              NA_real_),
+    hhi_vol = if_else(sum(vol_item, na.rm = TRUE) > 0,
+                      sum((vol_item / sum(vol_item, na.rm = TRUE))^2, na.rm = TRUE),
+                      NA_real_),
+    
+    top10_share_val = if_else(sum(val_item, na.rm = TRUE) > 0,
+                              sum(sort(val_item, decreasing = TRUE)[1:min(10, n())], na.rm = TRUE) / sum(val_item, na.rm = TRUE),
+                              NA_real_),
+    hhi_val = if_else(sum(val_item, na.rm = TRUE) > 0,
+                      sum((val_item / sum(val_item, na.rm = TRUE))^2, na.rm = TRUE),
+                      NA_real_),
+    .groups = "drop"
+  ) %>%
+  arrange(fecha)
+
+# Une concentración a la tabla mensual principal
+metrics_mes <- metrics_mes %>%
+  left_join(conc_mes, by = "fecha")
+
+# (8) Iliquidez por ÍTEM: % meses sin ventas + racha máxima sin ventas (desde feb-2023)
+illiquidez_item <- df_long %>%
+  mutate(fecha = ym(fecha)) %>%
+  filter(fecha >= ym("2023-02")) %>%
+  filter(!(oferta == 0 & precio == 0)) %>%
+  group_by(nombre) %>%
+  arrange(fecha, .by_group = TRUE) %>%
+  summarise(
+    meses_con_dato = sum(!is.na(oferta) | !is.na(precio)),
+    meses_sin_ventas = sum(!is.na(oferta) & oferta == 0),
+    prop_meses_sin_ventas = if_else(meses_con_dato > 0, meses_sin_ventas / meses_con_dato, NA_real_),
+    
+    # racha máxima de meses consecutivos con oferta == 0 (solo en meses con dato)
+    max_racha_sin_ventas = {
+      idx <- which(!is.na(oferta) | !is.na(precio))
+      if (length(idx) == 0) NA_integer_ else {
+        z <- (!is.na(oferta[idx]) & oferta[idx] == 0)
+        r <- rle(z)
+        if (any(r$values)) max(r$lengths[r$values]) else 0L
+      }
+    },
+    
+    .groups = "drop"
+  ) %>%
+  arrange(desc(prop_meses_sin_ventas))
+
+metrics_plot <- metrics_mes %>%
+  mutate(fecha = as.Date(fecha)) %>%
+  filter(fecha >= as.Date(ym("2023-02"))) %>%
+  arrange(fecha)
+
+illiq_plot <- illiquidez_item %>%
+  filter(!is.na(prop_meses_sin_ventas)) %>%
+  mutate(prop_meses_sin_ventas = pmin(pmax(prop_meses_sin_ventas, 0), 1))
+
+fmt_si <- scales::label_number(scale_cut = scales::cut_si(" "))
+```
+
+Estás son métricas del mercado usados principalmente en economía, como no estamos formados en estos ámbitos simplemente comentaremos las conclusiones que podemos derivar de estos diagramas.
+
+```{r}
+ggplot(metrics_plot, aes(x = fecha, y = volumen_unidades)) +
+  geom_line(linewidth = 1) +
+  scale_y_continuous(labels = fmt_si) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Actividad del mercado",
+    subtitle = "Volumen mensual (unidades vendidas)",
+    x = "Fecha", y = "Volumen (unidades)"
+  )
+```
+
+Eje X: tiempo (meses); Eje Y: unidades vendidas (millones)
+
+¿Qué mide? El número total de unidades vendidas cada mes (sin tener en cuenta el precio) –\> Es una medida pura de actividad.
+
+Se observa:
+
+-   El mercado crece rápidamente al inicio (fase de expansión).
+
+-   Luego entra en una meseta de actividad alta.
+
+-   caída brusca en el último mes por lo mencionado anteriormente.
+
+Pero actividad ≠ valor económico, de ahí el siguiente.
+
+```{r}
+ggplot(metrics_plot, aes(x = fecha, y = turnover)) +
+  geom_line(linewidth = 1) +
+  scale_y_continuous(labels = fmt_si) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Tamaño económico del mercado",
+    subtitle = "Turnover mensual = Σ (precio × unidades)",
+    x = "Fecha", y = "Turnover (CN¥)"
+  )
+```
+
+¿Qué mide? El valor monetario total del mercado cada mes; mide el “tamaño económico” real.
+
+Eje X: tiempo (meses); Eje Y en CNY (miles de millones)
+
+Se observa:
+
+Que aunque el volumen se mantiene alto, el turnover cae más, lo que sugiere: precios medios más bajos o desplazamiento hacia ítems baratos.
+
+El mercado sigue activo, pero mueve menos dinero. Esto es típico de:
+
+-   maduración del mercado
+
+-   menor especulación
+
+-   mayor rotación de ítems comunes
+
+```{r}
+ggplot(metrics_plot, aes(x = fecha)) +
+  geom_ribbon(aes(ymin = p10_precio, ymax = p90_precio), alpha = 0.20) +
+  geom_line(aes(y = mediana_precio), linewidth = 1) +
+  geom_line(aes(y = vwap), linewidth = 1, linetype = "dashed") +
+  scale_y_log10(labels = fmt_si) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Índice de precio del mercado",
+    subtitle = "Mediana (línea) + banda P10–P90 + VWAP (discontinua) — escala log",
+    x = "Fecha", y = "Precio (CN¥, log10)"
+  )
+```
+
+Qué mide cada elemento:
+
+Línea continua → mediana del precio
+
+Banda gris (P10–P90) → dispersión de precios
+
+Línea discontinua → VWAP (precio medio ponderado por volumen)
+
+Escala logarítmica → necesaria por la enorme heterogeneidad de precios
+
+Se observa:
+
+La mediana es estable → el “ítem típico” no cambia mucho de precio
+
+La VWAP está muy por encima → pocos ítems caros concentran valor
+
+La banda P10–P90 es amplia → mercado muy desigual
+
+Es decir, el precio “normal” es estable y el valor total del mercado depende de pocos items caros; esto explica por qué: el turnover puede caer aunque el volumen no lo haga tanto.
+
+"Mercado estable en el centro, muy asimétrico en la cola"
+
+```{r}
+ggplot(metrics_plot, aes(x = fecha, y = prop_activos)) +
+  geom_line(linewidth = 1) +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Liquidez global (breadth)",
+    subtitle = "% de ítems con ventas sobre ítems con datos",
+    x = "Fecha", y = "% ítems activos"
+  )
+```
+
+¿Qué mide? El porcentaje de items se vende al menos una vez en el mes.
+
+Se observa:
+
+-   Una pequeña caída de 1% pero con una inclinación preocupante implicando que podría seguir así en el futuro, esto se debió al gran flujo de nuevos items y la gente siendo conservador en no querer ponerlos a la venta por debajo de un mejor valor futuro.
+
+```{r}
+ggplot(metrics_plot, aes(x = fecha, y = top10_share_val)) +
+  geom_line(linewidth = 1) +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Concentración del mercado",
+    subtitle = "Share del Top-10 por turnover",
+    x = "Fecha", y = "Top-10 share (turnover)"
+  )
+```
+
+¿Qué mide? El porcentaje del valor total lo generan los 10 items más vendidos; es una medida clásica de concentración.
+
+Se observa:
+
+Que el mercado pasa de ser dominado por pocos items a ser más diversificado
+
+El salto final indica:
+
+-   huida del valor hacia items “seguros”
+
+-   o caída general donde solo sobreviven los top
+
+Esto claramente es una señal de estrés o una transición de mercado.
+
+```{r}
+ggplot(metrics_plot, aes(x = fecha, y = cor_log_precio_dem)) +
+  geom_hline(yintercept = 0, linewidth = 0.6) +
+  geom_line(linewidth = 1) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Relación precio–demanda (por mes)",
+    subtitle = "Correlación cross-section: cor(log(precio), log(1 + oferta))",
+    x = "Fecha", y = "Correlación"
+  )
+```
+
+¿Qué mide? Relación cross-section mensual entre: precio y liquidez (oferta/demanda).
+
+Se observa:
+
+-   Correlación negativa y estable
+
+-   Ítems más líquidos → precios más bajos
+
+-   Refuerza la lógica de mercado competitivo
+
+Exactamente lo esperable de un mercado de este tipo.
+
+```{r}
+ggplot(illiq_plot, aes(x = prop_meses_sin_ventas)) +
+  geom_histogram(aes(y = after_stat(count / sum(count))), bins = 40) +
+  scale_x_continuous(labels = percent_format(accuracy = 1)) +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Distribución de iliquidez por ítem",
+    subtitle = "% de meses sin ventas (desde feb-2023) — frecuencia relativa",
+    x = "% meses sin ventas",
+    y = "Frecuencia relativa"
+  )
+```
+
+¿Qué mide? En qué proporción del período no se vendió.
+
+Se observa:
+
+Pico enorme en 0% → la mayoría siempre se vende
+
+Pequeño pico en 100% → items muertos
+
+Casi nada en medio → mercado “bimodal”
+
+Es decir hay muchos items activos y una cola de items estructuralmente ilíquidos. No es un mercado “normal” como los que encuentras en la bolsa, es todo o nada.
+
+### Loot boxes
+
+```{r, echo=FALSE, warning=FALSE}
+# --- Helper: parsea una celda a (oferta, precio) numéricos o missing ---
+.parse_cell <- function(cell) {
+  # missing: NULL real, "NULL", NA, length 0
+  if (is.null(cell) || length(cell) == 0 ||
+      (length(cell) == 1 && (is.na(cell) || identical(cell, "NULL")))) {
+    return(list(missing = TRUE, oferta = NA_real_, precio = NA_real_))
+  }
+  
+  # Si viene como vector/list con nombres (oferta, precio)
+  if ((is.atomic(cell) || is.list(cell)) && length(cell) >= 2) {
+    nm <- names(cell)
+    if (!is.null(nm) && all(c("oferta", "precio") %in% nm)) {
+      return(list(
+        missing = FALSE,
+        oferta  = as.numeric(cell[["oferta"]]),
+        precio  = as.numeric(cell[["precio"]])
+      ))
+    }
+    # Si viene sin nombres pero con dos valores (oferta, precio)
+    if (length(cell) == 2) {
+      return(list(
+        missing = FALSE,
+        oferta = as.numeric(cell[[1]]),
+        precio = as.numeric(cell[[2]])
+      ))
+    }
+  }
+  
+  # Si viene como string "0.00, 0.27"
+  if (is.character(cell) && length(cell) == 1) {
+    parts <- strsplit(cell, ",", fixed = TRUE)[[1]]
+    if (length(parts) >= 2) {
+      return(list(
+        missing = FALSE,
+        oferta = as.numeric(trimws(parts[1])),
+        precio = as.numeric(trimws(parts[2]))
+      ))
+    }
+  }
+  
+  # Fallback: si hay algún formato raro
+  warning("Formato de celda no reconocido; se deja como missing. str(cell): ",
+          paste(capture.output(str(cell)), collapse = " "))
+  list(missing = TRUE, oferta = NA_real_, precio = NA_real_)
+}
+
+fix_zero_prices_locf <- function(df, id_col = "nombre") {
+  month_cols <- setdiff(names(df), id_col)
+  month_cols <- month_cols[order(as.Date(paste0(month_cols, "-01")))]
+  
+  # Asegura list-cols (para poder guardar NULL y pares oferta/precio)
+  for (col in month_cols) {
+    if (!is.list(df[[col]])) df[[col]] <- as.list(df[[col]])
+  }
+  
+  # Normaliza: cada celda -> NULL o c(oferta=..., precio=...) numérico
+  df[month_cols] <- lapply(df[month_cols], function(col) {
+    lapply(col, function(cell) {
+      p <- .parse_cell(cell)
+      if (p$missing) return(NULL)
+      c(oferta = p$oferta, precio = p$precio)
+    })
+  })
+  
+  # Extrae matrices numéricas (rápido para aplicar LOCF por fila)
+  oferta <- sapply(df[month_cols], function(col)
+    vapply(col, function(cell) if (is.null(cell)) NA_real_ else unname(cell[["oferta"]]), numeric(1))
+  )
+  precio <- sapply(df[month_cols], function(col)
+    vapply(col, function(cell) if (is.null(cell)) NA_real_ else unname(cell[["precio"]]), numeric(1))
+  )
+  
+  # Corrige por fila: si oferta==0 & precio==0 => precio = último precio > 0 anterior
+  for (i in seq_len(nrow(df))) {
+    last_pos <- NA_real_
+    for (j in seq_along(month_cols)) {
+      o <- oferta[i, j]
+      p <- precio[i, j]
+      
+      if (!is.na(p) && p > 0) last_pos <- p
+      
+      if (!is.na(o) && o == 0 && !is.na(p) && p == 0 && !is.na(last_pos)) {
+        precio[i, j] <- last_pos
+      }
+    }
+  }
+  
+  # Vuelca precios al df (manteniendo NULL intactos)
+  for (j in seq_along(month_cols)) {
+    colname <- month_cols[j]
+    col <- df[[colname]]
+    newp <- precio[, j]
+    
+    for (i in seq_along(col)) {
+      cell <- col[[i]]
+      if (is.null(cell)) next
+      cell[["precio"]] <- newp[[i]]
+      col[[i]] <- cell
+    }
+    df[[colname]] <- col
+  }
+  
+  df
+}
+
+
+data_month <- readRDS("./out/data_monthly.rds")
+data_month_fixed <- fix_zero_prices_locf(data_month)
+df_long_filtered <- data_month_fixed %>%
   pivot_longer(
     cols = -nombre,
     names_to = "fecha",
@@ -149,243 +1039,165 @@ df_long_filtered <- data_month %>%
       as.numeric(x["oferta"])
     })
   )
-
-filter(df_long_filtered, oferta > 0, precio == min(precio, na.rm = TRUE))
-filter(df_long_filtered, oferta > 0, precio == max(precio, na.rm = TRUE))
 ```
 
-Ahora que hemos filtrado elementos que no estan a la venta (oferta es 0) podemos ver como esas skins desaparecen. Ahora ejecutando el siguiente script para mostrar los siguientes menores con oferta \> 0:
+Para tratar este apartado de nuestro trabajo, se estudiará las probabilidades y rentabilidad de una caja de Counter-Strike en particular, el Fracture Case.
+
+A la hora de abrir una caja, se producen 3 sorteos:
+
+\- Un sorteo para decidir qué item de la caja es elegido.
+
+\- Un sorteo para decidir si tiene StatTrak el item elegido o no.
+
+\- Un sorteo para decidir qué desgaste tiene el item elegido.
+
+Una vez realizado los 3 sorteos, el item es entregado al usuario.
+
+#### Primer sorteo
+
+Cada item en toda caja de Counter-Strike se clasifica en 1 de 5 categorias, de más a menos común: Mil-Spec, Restricted, Classified, Covert y Special Item. Cada categoría tiene 5 veces más probabilidades de ser elegido que el anterior. La tabla de probabilidades se vería así:
 
 ```{r}
-df_long_filtered %>% 
-  filter(oferta > 0) %>% 
-  slice_min(precio, n = Inf)
+probs <- data.frame(category=c("Mil-Spec", "Restricted", "Classified", "Covert", "Special Item"), prob=c(0.79923, 0.15985, 0.03197, 0.00639, 0.00256))
 
-nrow(df_long_filtered %>% 
-       filter(oferta > 0) %>% 
-       slice_min(precio, n = Inf)
-     )
+probs
 ```
 
-Pues vemos que lo más barato son 0.02 Yuan entre 283640 items.
-
-Ahora con esto ya podemos ver el valor del mercado de media por mes en un gráfico de barras y ver su evolución.
+En una caja, la probabilidad individual de cada item de ser elegido se calcula como la división de la probabilidad de que sea elegida la categoría a la que pertenece entre el número de items que pertenecen a dicha categoría en la caja. En el caso del Fracture Case:
 
 ```{r}
-mercado_media <- df_long %>%
-  group_by(fecha) %>%
-  summarise(media_precio = mean(precio, 
-                                na.rm = TRUE)
-            ) %>%
-  arrange(fecha)
+fracture_weapons <- c("Negev | Ultralight",
+                      "P2000 | Gnarled",
+                      "SG 553 | Ol' Rusty",
+                      "SSG 08 | Mainframe 001",
+                      "P250 | Cassette",
+                      "P90 | Freight",
+                      "PP-Bizon | Runic",
+                      "MAG-7 | Monster Call",
+                      "Tec-9 | Brother",
+                      "MAC-10 | Allure",
+                      "Galil AR | Connexion",
+                      "MP5-SD | Kitbash",
+                      "M4A4 | Tooth Fairy",
+                      "Glock-18 | Vogue",
+                      "XM1014 | Entombed",
+                      "Desert Eagle | Printstream",
+                      "AK-47 | Legion of Anubis",
+                      "Special Item")
 
-ggplot(mercado_media, 
-       aes(x = as.numeric(factor(fecha)), 
-           y = media_precio)) +
-  geom_col(aes(x = as.numeric(factor(fecha))), 
-           fill = "steelblue") +
-  geom_smooth(method = "lm", 
-              se = FALSE, 
-              linewidth = 1.2, 
-              color = "darkgreen") +
-  scale_x_continuous(
-    breaks = seq_along(mercado_media$fecha),
-    labels = mercado_media$fecha
-  ) +
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Evolución del precio medio menusal del mercado",
-    x = "Mes",
-    y = "Precio medio (CN¥)"
-  ) +
-  theme(axis.text.x = element_text(angle = 45, 
-                                   hjust = 1))
+rarity <- c(7, 5, 3, 2, 1) # Cuantos items de la caja pertenecen a cada categoría (los 7 primeros a Mil-Spec, los siguientes 5 a Restricted, y así sucesivamente).
 
-mercado_media$mes_num <- seq_len(nrow(mercado_media))
-modelo <- lm(media_precio ~ mes_num, data = mercado_media)
+fracture_case <- data.frame(weapons=fracture_weapons, probs=rep(probs$prob/rarity, rarity))
 
-round(coef(modelo)[["mes_num"]], 2)
+fracture_case
 ```
 
-Podemos ver que el mercado crece, y la linea verde es una regreción lineal que nos dirá el crecimiento de media con su pendiente, en este caso 44(CN¥) por mes (\~50 centimos de euro con conversión actual).
+#### Segundo sorteo
 
-[Creo que un buen puñado de armas entraron en el mercado en 2022 y de ahí se debe el salto entre un año y otro (es una hipotesis, se comprueba mirando la fecha de sus últimos NA's si tienen y comparando)] **/ToDo**
+Como mencionado anteriormente, el segundo sorteo se realiza una vez elegido el arma para decidir si este tiene StatTrak o no. StatTrak no es nada más que un contador que se le añade a una skin que lo hace más valiosa que una sin StatTrak.
 
-Ahora intentemos hacer un diagrama de caja y bigotes para ver la desviación durante cada mes.
+Para decidir si un arma tiene StatTrak sencillamente se comprueba si un número aleatorio generado entre 0 y 1 es inferior a 0.10, es decir, existe un 10% de probabilidad de que el item tenga StatTrak. En R la implementación se haría así con la distribución uniforme:
+
+```{r, eval=F}
+runif(1) < 0.10
+```
+
+#### Tercer sorteo
+
+El último sorteo es para determinar el desgaste del arma elegido. Cuanto menos desgastado, más valioso es el arma en precio. El desgaste de un arma se calcula con la siguiente formula: $$Wear = Min + (Random \times (Max - Min))$$Donde Min y Max es el desgaste mínimo y máximo que puede tener el arma elegido (son valores programados internamente en el juego) y Random es un número aleatorio entre 0 y 1. En R la ecuación se implementaría algo así:
 
 ```{r}
-ggplot(df_long %>% filter(!is.na(precio)), 
-       aes(x = fecha, 
-           y = precio)) +
-  geom_boxplot(fill = "skyblue") +
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Distribución mensual del precio de las skins (boxplot)",
-    x = "Mes",
-    y = "Precio (CN¥)"
-  ) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1)
-  )
+fracture_case$min_wear = c(0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 
+                           0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00) # los desgastes minimos de las armas
+
+fracture_case$max_wear = c(0.78, 1.00, 1.00, 1.00, 0.60, 1.00, 1.00, 1.00, 1.00, 1.00, 
+                           0.80, 0.80, 0.73, 0.75, 0.50, 0.80, 0.70, 1.00) # los desgastes maximos de las armas
 ```
 
-No se ve nada, hay MUCHOS outliers e incluso quitandolos:
+```{r, eval=F}
+fracture_case$min_wear + (runif(1) * (fracture_case$max_wear - fracture_case$min_wear))
+```
+
+En función del valor de desgaste calculado, el desgaste se clasifica en 1 de 5 categorías de menor a mayor desgaste: Factory New, Minimal Wear, Field-Tested, Well-Worn y Battle-Scarred. Para que el desgaste se pueda clasificar, este tiene que caer en uno de los siguientes rangos:
 
 ```{r}
-df_sin_outliers <- df_long %>%
-  group_by(fecha) %>%
-  filter({
-    Q1  <- quantile(precio, 0.25, na.rm = TRUE)
-    Q3  <- quantile(precio, 0.75, na.rm = TRUE)
-    IQR <- Q3 - Q1
-    lower <- Q1 - 1.5 * IQR
-    upper <- Q3 + 1.5 * IQR
-    precio >= lower & precio <= upper
-  }) %>%
-  ungroup()
+wear <- list(
+  names = c("Factory New", "Minimal Wear", "Field-Tested", "Well-Worn", "Battle-Scarred"),
+  breaks = c(0.00, 0.07, 0.15, 0.38, 0.45, 1.00)
+)
 
-ggplot(df_sin_outliers, 
-       aes(x = fecha, 
-           y = precio)) +
-  geom_boxplot(fill = "skyblue") +
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Distribución mensual del precio de las skins (outliers eliminados)",
-    x = "Mes",
-    y = "Precio (CN¥)"
-  ) +
-  theme(axis.text.x = element_text(angle = 45, 
-                                   hjust = 1))
+data.frame(wear$names, lower = c(0.00, 0.07, 0.15, 0.38, 0.45),
+           upper = c(0.07, 0.15, 0.38, 0.45, 1.00))
 ```
 
-Incluso sin outliers los datos están tan dispersos que el diagrama de caja tiene problemas mostrando datos.
+#### Rentabilidad
 
-Para solucionar esto usaremos una escala logirtmica y re-añadiremos los valores extremos:
+Ahora procederemos a simular la rentabilidad de abrir una cantidad determinada de cajas Fracture. Para ello crearemos un pequeño simulador en el que sacamos n_items de la caja en una fecha de precios determinada llamada date:
 
 ```{r}
-ggplot(df_long %>% filter(!is.na(precio), precio > 0), 
-       aes(x = fecha, 
-           y = precio)) +
-  geom_boxplot(fill = "skyblue") +
-  scale_y_log10() +
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Precio mensual de las skins (escala log)",
-    x = "Mes",
-    y = "Precio (CN¥)"
-  ) +
-  theme(axis.text.x = element_text(angle = 45, 
-                                   hjust = 1))
+gamble <- function(n_items, date) {
+  samp <- data.frame(weapons=sample(fracture_case$weapons, n_items, replace=T, fracture_case$probs)) # Cogemos los nombres de n_items aleatoriamente
+  
+  samp$stat = runif(n_items) < 0.10 # Tiene StatTrak? (10% probabilidad)
+  
+  indexes <- match(samp$weapons, fracture_case$weapons)
+  samp$wear <- cut(fracture_case$min_wear[indexes] + (runif(nrow(samp)) * (fracture_case$max_wear[indexes] - fracture_case$min_wear[indexes])), 
+                   wear$breaks, 
+                   wear$names) # Calculamos el desgaste del arma y clasificamos ese desgaste
+  
+  
+  df_date <- df_long_filtered %>% filter(fecha == date) # Cogemos los precios de un mes en particular
+  
+  samp$weapons <- ifelse(
+    samp$weapons == "Special Item",
+    
+    sample((df_date %>% filter(grepl("Knife", nombre))) %>% pull(nombre), n_items), # Cogemos un cuchillo si nos ha tocado un item special.
+    
+    paste0(ifelse(samp$stat, "StatTrak™ ",  ""), samp$weapons, " (", samp$wear, ")")) # Construimos la string del arma con su desgaste y si tiene StatTrak.
+  
+  samp$price <- (df_date %>% pull(precio))[match(samp$weapons, df_date %>% pull(nombre))] # Cogemos el precio del item elegido
+  
+  return(samp) # Retornamos el dataframe conteniendo todos los items que hemos sacado de la caja
+}
 ```
 
-Lo primero a mencionar es la falta de extremos inferiroes, no hay porque el mínimo valor que puede tener es 0.02 mientras que el extremo inferior empieza en \~0.001. Por lo que no existen.
+Ahora graficaremos la rentabilidad de abrir 10 cajas en 100 simulaciones distintas usando los valores de precio de por ejemplo marzo del 2023. Tenemos que tener en cuenta el precio de una llave de la caja Fracture cuesta 2.50\$ o 17.60 yuanes. Debemos restarlo a los precios de los items conseguidos en cada simulación para conseguir el beneficio real de abrir las cajas.
 
-[que más hay que comentar???] **/ToDo**
+```{r, warning=F}
+beneficios <- replicate(100, sum(gamble(10, "2023-03")$price) - 17.60 * 10) # 100 simulaciones en las que abres 10 cajas
 
-Siguiente punto es que ahora ya sabemos que tenemos muchos extremos y podemos plantearnos preguntas como:
+ggplot() + geom_histogram(aes(x=beneficios[beneficios > 0], y=..density..), fill="darkgreen", bins = 60) +
+  geom_histogram(aes(x=beneficios[beneficios < 0], y=-..density..), fill="darkred", bins = 60) +
+  labs(title="Beneficios de abrir 10 cajas para 100 simulaciones", x="Beneficios", y="Densidad") +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0)
+```
 
--   ¿Estos extremos son siempre los mismos? Y si no, ¿que les paso? ¿Fué un pico puntual, una burbuja, manipulación de mercado?
-
--   ¿El crecimiento de cada skin es el que esperaríamos con el crecimiento del mercado y de esa forma explicando la escala logarítmica? ¿Porque nos hace falta esta escala, la respuesta está enlazada con una propiedad interesante de las observaciones?
-
-Pero antes de entrar en esas preguntas viene bien tener métricas como la varianza o el coeficiente de variación y ver que conclusiones podemos sacar de ellas:
+Se puede observar que existen grandes perdidas puesto que la densidad de beneficios se concentra debajo del 0. Además las ganancias que sí se consiguen suelen ser con un beneficio relativamente pequeño, aunque existe la posibilidad de conseguir beneficios muy grandes al haber sacado un item special o una skin con mucha rareza. Podemos ver numericamente los beneficios de todas las simulaciones y ver que en la mayoría de simulaciones se pierde dinero. La suma de los beneficios puede dar positivo en el caso de que uno tenga mucha suerte, pero si se corren más simulaciones los beneficios tenderán a ser negativos.
 
 ```{r}
-stats_por_arma <- df_long %>%
-  group_by(nombre) %>%
-  summarise(
-    media = mean(precio, na.rm = TRUE),
-    sd = sd(precio, na.rm = TRUE),
-    varianza = var(precio, na.rm = TRUE),
-    CV = ifelse(media == 0, NA, sd / media)
-  )
-
-ggplot(stats_por_arma %>% filter(!is.na(varianza)), aes(x = varianza)) +
-  geom_histogram(bins = 60, fill = "steelblue") +
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Distribución de la varianza del precio por skin",
-    x = "Varianza",
-    y = "Frecuencia"
-  )
-
-ggplot(stats_por_arma %>% filter(!is.na(varianza), varianza > 0), aes(x = varianza)) +
-  geom_histogram(bins = 60, fill = "steelblue") +
-  scale_x_log10() +
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Distribución de la varianza por skin (escala log)",
-    x = "Varianza (log10)",
-    y = "Frecuencia"
-  )
-
-ggplot(stats_por_arma %>% filter(!is.na(CV)), aes(x = CV)) +
-  geom_histogram(bins = 60, fill = "darkorange") +
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Distribución del coeficiente de variación (CV) por skin",
-    x = "Coeficiente de variación",
-    y = "Frecuencia"
-  )
-
-ggplot(stats_por_arma %>% filter(!is.na(CV), CV > 0), aes(x = CV)) +
-  geom_histogram(bins = 60, fill = "darkorange") +
-  scale_x_log10() +
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Distribución del CV por skin (escala log)",
-    x = "Coeficiente de variación (log10)",
-    y = "Frecuencia"
-  )
+data.frame(simulación=1:100,beneficios)
+sum(beneficios)
 ```
 
-Lo primero que podemos concluir de todo es que el primer diagrama es muy poco explicativo, hace falta mucha resolución en un area específica y después mantener elementos muy extremos, lo cual es imposible sin que sea un diagrama con muchos rangos, con amplitud pequeña y que sea exagerademente ancho. Por lo que pasamos a escala logarítmica y de ahí podemos sacar más.
+Finalmente, se podría haber considerado utilizar los precios de cualquier otra fecha para observar si varían los beneficios. Sin embargo, independientemente de la media de precios del mercado las probabilidades van a seguir siendo las mismas para las skins más comunes y más raras. Por lo tanto, van a seguir habiendo mayores o menores perdidas en general. Efectivamente, la afirmación de que nunca ganas dinero abriendo cajas se confirma.
 
-¿Ahora que podemos concluir de estas gráficas?
+Como curiosidad, podemos calcular la probabilidad de que nos toque el mejor caso posible, un item especial con StatTrak y que esté en estado Factory New. Como todos los sucesos son independientes multiplicamos las probabilidades:
 
--   **/ToDo**
-
-Volvemos para responder a las preguntas anteriores:
-
-**/ToDo**
-
-Por ahora limpiamos el entorno y seguimos con el siguiente tema.
-
-```{r, warning=FALSE, results='hide'}
-rm(data_month, df_long, df_long_filtered, df_sin_outliers, mercado_media, modelo, stats_por_arma)
-detach("package:tidyverse", unload = TRUE)
-detach("package:dplyr", unload = TRUE)
-detach("package:tidyr", unload = TRUE)
-detach("package:purrr", unload = TRUE)
-detach("package:ggplot2", unload = TRUE)
-detach("package:lubridate", unload = TRUE)
-gc()
+```{r}
+(probs %>% pull(prob))[match("Special Item", probs$category)] * 0.1 * 0.07 * 100 # Probabilidad de Special Item * Probabilidad StatTrak * Probabilidad Factory New * 100 (porcentaje)
 ```
 
-### Relación precio/demanda
-
-Idea: ¿Existe una relación precio-demanda? Y si es así, ¿De que manera?
-
-**/ToDo**
-
-### Loot boxes
-
-Probabilidades, precio y rentabilidad (si es posible asociarlo con lo anterior, pero no irse muy loco)
-
-**/ToDo**
-
-### []
-
-**/ToDo**
+Es decir, la probabilidad es de un 0.001792%.
 
 ## Conclusiones
 
-**/ToDo** \<-- Lo penúltimo que se hace.
+El mercado presenta una elevada actividad y liquidez global, con una gran mayoría de ítems participando en las transacciones. Sin embargo, el valor económico se encuentra concentrado en un número reducido de ítems de alto precio (+20% del valor del mercado a 2024), mientras que el precio mediano permanece estable. La relación negativa entre precio y liquidez confirma una estructura competitiva, y la distribución bimodal de la iliquidez sugiere la coexistencia de ítems muy activos con una cola de productos prácticamente inactivos. Y sin comentar que el mercado sufre muchas variaciones debido a actores de mala fe como las granjas de bots y por nuevo contenido cambiando la distribución del mercado.
 
-## Anexos
+Este está fuertemente a las manos de inversores que usan bots para comprar y vender armas a su vez que jugadores que invierten una cantidad considerable en la parte más popular del juego que es la apuesta por cajas que como hemos visto siempre perdemos a la larga. Sabiendo que niños juegan este juego trae preguntas éticas de hasta que punto este tipo de apuestas es correcto para exponer a jóvenes y como estas "élites" pueden manipularlos.
 
-[1]
+Honestamente, entramos a este estudio pensando encontrar estadísticas de un mercado agresivo, fuertemente dictado por grandes compradores y una perdida para el usuario promedio. Pero terminamos encontrando como las condiciones de un país fuerzan individuos a lanzar bots para lograr ganar dinero en mercados controlados por bots y optimizado para ganar lo máximo posible de el.
 
-![](images/clipboard-2655942623.png)
+Con esto quiero decir que esperábamos que CSGO fuera el "antagonista" que creara un mercado para beneficiarse de su audiencia, pero al contrario encontramos que la audiencia en si era la que se peleaba entre ella para lograr beneficios.
 
-Nota: Personalmente por lo comparable a \~425,000€ en conversión actual lo veo algo excesivo.
+Esto es un tema poco estudiado, pero claramente en este tipo de economías se puede observar como se crea un mercado como el de la bolsa en periodos mas cortos y podrían ser fuentes para futuros economistas para poder estudiar estos fenómenos en más detalle.
